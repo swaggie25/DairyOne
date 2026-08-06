@@ -12,7 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAccountantRouteImport } from './routes/_authenticated/accountant'
 import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/agent'
+import { Route as AuthenticatedBuyerRouteImport } from './routes/_authenticated/buyer'
+import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated/farmer'
 import { Route as AuthenticatedManagerRouteImport } from './routes/_authenticated/manager'
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
 
@@ -30,9 +33,24 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedAccountantRoute = AuthenticatedAccountantRouteImport.update({
+  id: '/accountant',
+  path: '/accountant',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAgentRoute = AuthenticatedAgentRouteImport.update({
   id: '/agent',
   path: '/agent',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBuyerRoute = AuthenticatedBuyerRouteImport.update({
+  id: '/buyer',
+  path: '/buyer',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFarmerRoute = AuthenticatedFarmerRouteImport.update({
+  id: '/farmer',
+  path: '/farmer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedManagerRoute = AuthenticatedManagerRouteImport.update({
@@ -49,14 +67,20 @@ const AuthenticatedOwnerRoute = AuthenticatedOwnerRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
+  '/buyer': typeof AuthenticatedBuyerRoute
+  '/farmer': typeof AuthenticatedFarmerRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
+  '/buyer': typeof AuthenticatedBuyerRoute
+  '/farmer': typeof AuthenticatedFarmerRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
 }
@@ -65,21 +89,43 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/accountant': typeof AuthenticatedAccountantRoute
   '/_authenticated/agent': typeof AuthenticatedAgentRoute
+  '/_authenticated/buyer': typeof AuthenticatedBuyerRoute
+  '/_authenticated/farmer': typeof AuthenticatedFarmerRoute
   '/_authenticated/manager': typeof AuthenticatedManagerRoute
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/agent' | '/manager' | '/owner'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/accountant'
+    | '/agent'
+    | '/buyer'
+    | '/farmer'
+    | '/manager'
+    | '/owner'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/agent' | '/manager' | '/owner'
+  to:
+    | '/'
+    | '/auth'
+    | '/accountant'
+    | '/agent'
+    | '/buyer'
+    | '/farmer'
+    | '/manager'
+    | '/owner'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/accountant'
     | '/_authenticated/agent'
+    | '/_authenticated/buyer'
+    | '/_authenticated/farmer'
     | '/_authenticated/manager'
     | '/_authenticated/owner'
   fileRoutesById: FileRoutesById
@@ -113,11 +159,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/accountant': {
+      id: '/_authenticated/accountant'
+      path: '/accountant'
+      fullPath: '/accountant'
+      preLoaderRoute: typeof AuthenticatedAccountantRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agent': {
       id: '/_authenticated/agent'
       path: '/agent'
       fullPath: '/agent'
       preLoaderRoute: typeof AuthenticatedAgentRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/buyer': {
+      id: '/_authenticated/buyer'
+      path: '/buyer'
+      fullPath: '/buyer'
+      preLoaderRoute: typeof AuthenticatedBuyerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/farmer': {
+      id: '/_authenticated/farmer'
+      path: '/farmer'
+      fullPath: '/farmer'
+      preLoaderRoute: typeof AuthenticatedFarmerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manager': {
@@ -138,13 +205,19 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccountantRoute: typeof AuthenticatedAccountantRoute
   AuthenticatedAgentRoute: typeof AuthenticatedAgentRoute
+  AuthenticatedBuyerRoute: typeof AuthenticatedBuyerRoute
+  AuthenticatedFarmerRoute: typeof AuthenticatedFarmerRoute
   AuthenticatedManagerRoute: typeof AuthenticatedManagerRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccountantRoute: AuthenticatedAccountantRoute,
   AuthenticatedAgentRoute: AuthenticatedAgentRoute,
+  AuthenticatedBuyerRoute: AuthenticatedBuyerRoute,
+  AuthenticatedFarmerRoute: AuthenticatedFarmerRoute,
   AuthenticatedManagerRoute: AuthenticatedManagerRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
 }
