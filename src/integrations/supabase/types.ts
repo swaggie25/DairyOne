@@ -65,6 +65,70 @@ export type Database = {
           },
         ]
       }
+      attendance: {
+        Row: {
+          agent_id: string
+          created_at: string
+          id: string
+          mcc_id: string
+          punch_in_at: string
+          punch_in_lat: number | null
+          punch_in_lng: number | null
+          punch_out_at: string | null
+          punch_out_lat: number | null
+          punch_out_lng: number | null
+          route_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          id?: string
+          mcc_id: string
+          punch_in_at?: string
+          punch_in_lat?: number | null
+          punch_in_lng?: number | null
+          punch_out_at?: string | null
+          punch_out_lat?: number | null
+          punch_out_lng?: number | null
+          route_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          id?: string
+          mcc_id?: string
+          punch_in_at?: string
+          punch_in_lat?: number | null
+          punch_in_lng?: number | null
+          punch_out_at?: string | null
+          punch_out_lat?: number | null
+          punch_out_lng?: number | null
+          route_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       farmer_animals: {
         Row: {
           animal_count: number
@@ -163,6 +227,110 @@ export type Database = {
           },
         ]
       }
+      forecasts: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          horizon_date: string
+          id: string
+          metric: string
+          model_version: string | null
+          predicted_value: number | null
+          scope_id: string | null
+          scope_type: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          horizon_date: string
+          id?: string
+          metric: string
+          model_version?: string | null
+          predicted_value?: number | null
+          scope_id?: string | null
+          scope_type: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          horizon_date?: string
+          id?: string
+          metric?: string
+          model_version?: string | null
+          predicted_value?: number | null
+          scope_id?: string | null
+          scope_type?: string
+        }
+        Relationships: []
+      }
+      gps_pings: {
+        Row: {
+          accuracy: number | null
+          agent_id: string
+          event_type: string
+          id: string
+          lat: number | null
+          lng: number | null
+          mcc_id: string
+          recorded_at: string
+          route_point_id: string | null
+          trip_id: string | null
+        }
+        Insert: {
+          accuracy?: number | null
+          agent_id: string
+          event_type?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          mcc_id: string
+          recorded_at?: string
+          route_point_id?: string | null
+          trip_id?: string | null
+        }
+        Update: {
+          accuracy?: number | null
+          agent_id?: string
+          event_type?: string
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          mcc_id?: string
+          recorded_at?: string
+          route_point_id?: string | null
+          trip_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gps_pings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gps_pings_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gps_pings_route_point_id_fkey"
+            columns: ["route_point_id"]
+            isOneToOne: false
+            referencedRelation: "route_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gps_pings_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "route_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mcc_centres: {
         Row: {
           active: boolean
@@ -204,6 +372,150 @@ export type Database = {
           village?: string | null
         }
         Relationships: []
+      }
+      milk_collections: {
+        Row: {
+          acidity: number | null
+          agent_id: string | null
+          animal_type: string
+          antibiotic_test_result: string | null
+          client_ref: string | null
+          clr: number | null
+          collected_at: string
+          created_at: string
+          created_by: string | null
+          farmer_id: string
+          fat_pct: number | null
+          gps_lat: number | null
+          gps_lng: number | null
+          id: string
+          mcc_id: string
+          offline_synced_at: string | null
+          quantity_litres: number
+          rate_per_litre: number
+          risk_score: number | null
+          route_point_id: string | null
+          session: string
+          signature_url: string | null
+          snf_pct: number | null
+          source: string
+          status: string
+          temperature: number | null
+          total_amount: number
+          trip_id: string | null
+          updated_at: string
+          verified_at: string | null
+          verified_by: string | null
+          water_adulteration_flag: boolean
+          water_adulteration_pct: number | null
+        }
+        Insert: {
+          acidity?: number | null
+          agent_id?: string | null
+          animal_type?: string
+          antibiotic_test_result?: string | null
+          client_ref?: string | null
+          clr?: number | null
+          collected_at?: string
+          created_at?: string
+          created_by?: string | null
+          farmer_id: string
+          fat_pct?: number | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string
+          mcc_id: string
+          offline_synced_at?: string | null
+          quantity_litres: number
+          rate_per_litre?: number
+          risk_score?: number | null
+          route_point_id?: string | null
+          session?: string
+          signature_url?: string | null
+          snf_pct?: number | null
+          source?: string
+          status?: string
+          temperature?: number | null
+          total_amount?: number
+          trip_id?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          water_adulteration_flag?: boolean
+          water_adulteration_pct?: number | null
+        }
+        Update: {
+          acidity?: number | null
+          agent_id?: string | null
+          animal_type?: string
+          antibiotic_test_result?: string | null
+          client_ref?: string | null
+          clr?: number | null
+          collected_at?: string
+          created_at?: string
+          created_by?: string | null
+          farmer_id?: string
+          fat_pct?: number | null
+          gps_lat?: number | null
+          gps_lng?: number | null
+          id?: string
+          mcc_id?: string
+          offline_synced_at?: string | null
+          quantity_litres?: number
+          rate_per_litre?: number
+          risk_score?: number | null
+          route_point_id?: string | null
+          session?: string
+          signature_url?: string | null
+          snf_pct?: number | null
+          source?: string
+          status?: string
+          temperature?: number | null
+          total_amount?: number
+          trip_id?: string | null
+          updated_at?: string
+          verified_at?: string | null
+          verified_by?: string | null
+          water_adulteration_flag?: boolean
+          water_adulteration_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milk_collections_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milk_collections_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milk_collections_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milk_collections_route_point_id_fkey"
+            columns: ["route_point_id"]
+            isOneToOne: false
+            referencedRelation: "route_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "milk_collections_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "route_trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       otp_codes: {
         Row: {
@@ -267,6 +579,106 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      quality_tests: {
+        Row: {
+          acidity: number | null
+          antibiotic_test_result: string | null
+          collection_id: string
+          fat_pct: number | null
+          id: string
+          notes: string | null
+          sample_id: string
+          snf_pct: number | null
+          temperature: number | null
+          tested_at: string
+          tested_by: string | null
+          water_adulteration_pct: number | null
+        }
+        Insert: {
+          acidity?: number | null
+          antibiotic_test_result?: string | null
+          collection_id: string
+          fat_pct?: number | null
+          id?: string
+          notes?: string | null
+          sample_id: string
+          snf_pct?: number | null
+          temperature?: number | null
+          tested_at?: string
+          tested_by?: string | null
+          water_adulteration_pct?: number | null
+        }
+        Update: {
+          acidity?: number | null
+          antibiotic_test_result?: string | null
+          collection_id?: string
+          fat_pct?: number | null
+          id?: string
+          notes?: string | null
+          sample_id?: string
+          snf_pct?: number | null
+          temperature?: number | null
+          tested_at?: string
+          tested_by?: string | null
+          water_adulteration_pct?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_tests_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "milk_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rate_slabs: {
+        Row: {
+          active: boolean
+          animal_type: string
+          created_at: string
+          id: string
+          max_fat: number
+          max_snf: number
+          mcc_id: string | null
+          min_fat: number
+          min_snf: number
+          rate_per_litre: number
+        }
+        Insert: {
+          active?: boolean
+          animal_type?: string
+          created_at?: string
+          id?: string
+          max_fat?: number
+          max_snf?: number
+          mcc_id?: string | null
+          min_fat?: number
+          min_snf?: number
+          rate_per_litre: number
+        }
+        Update: {
+          active?: boolean
+          animal_type?: string
+          created_at?: string
+          id?: string
+          max_fat?: number
+          max_snf?: number
+          mcc_id?: string | null
+          min_fat?: number
+          min_snf?: number
+          rate_per_litre?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rate_slabs_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       route_point_farmers: {
         Row: {
@@ -335,6 +747,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "route_points_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      route_trips: {
+        Row: {
+          agent_id: string
+          created_at: string
+          current_route_point_id: string | null
+          ended_at: string | null
+          id: string
+          mcc_id: string
+          route_id: string
+          session: string
+          started_at: string | null
+          status: string
+          trip_date: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          current_route_point_id?: string | null
+          ended_at?: string | null
+          id?: string
+          mcc_id: string
+          route_id: string
+          session?: string
+          started_at?: string | null
+          status?: string
+          trip_date?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          current_route_point_id?: string | null
+          ended_at?: string | null
+          id?: string
+          mcc_id?: string
+          route_id?: string
+          session?: string
+          started_at?: string | null
+          status?: string
+          trip_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_trips_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_trips_current_route_point_id_fkey"
+            columns: ["current_route_point_id"]
+            isOneToOne: false
+            referencedRelation: "route_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_trips_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_trips_route_id_fkey"
             columns: ["route_id"]
             isOneToOne: false
             referencedRelation: "routes"
