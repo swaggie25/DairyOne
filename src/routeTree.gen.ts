@@ -15,7 +15,9 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAccountantRouteImport } from './routes/_authenticated/accountant'
 import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/agent'
 import { Route as AuthenticatedBuyerRouteImport } from './routes/_authenticated/buyer'
+import { Route as AuthenticatedCollectionsRouteImport } from './routes/_authenticated/collections'
 import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated/farmer'
+import { Route as AuthenticatedFieldSetupRouteImport } from './routes/_authenticated/field-setup'
 import { Route as AuthenticatedManagerRouteImport } from './routes/_authenticated/manager'
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
 import { Route as AuthenticatedTripRouteImport } from './routes/_authenticated/trip'
@@ -49,9 +51,20 @@ const AuthenticatedBuyerRoute = AuthenticatedBuyerRouteImport.update({
   path: '/buyer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCollectionsRoute =
+  AuthenticatedCollectionsRouteImport.update({
+    id: '/collections',
+    path: '/collections',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFarmerRoute = AuthenticatedFarmerRouteImport.update({
   id: '/farmer',
   path: '/farmer',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFieldSetupRoute = AuthenticatedFieldSetupRouteImport.update({
+  id: '/field-setup',
+  path: '/field-setup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedManagerRoute = AuthenticatedManagerRouteImport.update({
@@ -76,7 +89,9 @@ export interface FileRoutesByFullPath {
   '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/buyer': typeof AuthenticatedBuyerRoute
+  '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
+  '/field-setup': typeof AuthenticatedFieldSetupRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
   '/trip': typeof AuthenticatedTripRoute
@@ -87,7 +102,9 @@ export interface FileRoutesByTo {
   '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/buyer': typeof AuthenticatedBuyerRoute
+  '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
+  '/field-setup': typeof AuthenticatedFieldSetupRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
   '/trip': typeof AuthenticatedTripRoute
@@ -100,7 +117,9 @@ export interface FileRoutesById {
   '/_authenticated/accountant': typeof AuthenticatedAccountantRoute
   '/_authenticated/agent': typeof AuthenticatedAgentRoute
   '/_authenticated/buyer': typeof AuthenticatedBuyerRoute
+  '/_authenticated/collections': typeof AuthenticatedCollectionsRoute
   '/_authenticated/farmer': typeof AuthenticatedFarmerRoute
+  '/_authenticated/field-setup': typeof AuthenticatedFieldSetupRoute
   '/_authenticated/manager': typeof AuthenticatedManagerRoute
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
   '/_authenticated/trip': typeof AuthenticatedTripRoute
@@ -113,7 +132,9 @@ export interface FileRouteTypes {
     | '/accountant'
     | '/agent'
     | '/buyer'
+    | '/collections'
     | '/farmer'
+    | '/field-setup'
     | '/manager'
     | '/owner'
     | '/trip'
@@ -124,7 +145,9 @@ export interface FileRouteTypes {
     | '/accountant'
     | '/agent'
     | '/buyer'
+    | '/collections'
     | '/farmer'
+    | '/field-setup'
     | '/manager'
     | '/owner'
     | '/trip'
@@ -136,7 +159,9 @@ export interface FileRouteTypes {
     | '/_authenticated/accountant'
     | '/_authenticated/agent'
     | '/_authenticated/buyer'
+    | '/_authenticated/collections'
     | '/_authenticated/farmer'
+    | '/_authenticated/field-setup'
     | '/_authenticated/manager'
     | '/_authenticated/owner'
     | '/_authenticated/trip'
@@ -192,11 +217,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBuyerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/collections': {
+      id: '/_authenticated/collections'
+      path: '/collections'
+      fullPath: '/collections'
+      preLoaderRoute: typeof AuthenticatedCollectionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/farmer': {
       id: '/_authenticated/farmer'
       path: '/farmer'
       fullPath: '/farmer'
       preLoaderRoute: typeof AuthenticatedFarmerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/field-setup': {
+      id: '/_authenticated/field-setup'
+      path: '/field-setup'
+      fullPath: '/field-setup'
+      preLoaderRoute: typeof AuthenticatedFieldSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/manager': {
@@ -227,7 +266,9 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountantRoute: typeof AuthenticatedAccountantRoute
   AuthenticatedAgentRoute: typeof AuthenticatedAgentRoute
   AuthenticatedBuyerRoute: typeof AuthenticatedBuyerRoute
+  AuthenticatedCollectionsRoute: typeof AuthenticatedCollectionsRoute
   AuthenticatedFarmerRoute: typeof AuthenticatedFarmerRoute
+  AuthenticatedFieldSetupRoute: typeof AuthenticatedFieldSetupRoute
   AuthenticatedManagerRoute: typeof AuthenticatedManagerRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
   AuthenticatedTripRoute: typeof AuthenticatedTripRoute
@@ -237,7 +278,9 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountantRoute: AuthenticatedAccountantRoute,
   AuthenticatedAgentRoute: AuthenticatedAgentRoute,
   AuthenticatedBuyerRoute: AuthenticatedBuyerRoute,
+  AuthenticatedCollectionsRoute: AuthenticatedCollectionsRoute,
   AuthenticatedFarmerRoute: AuthenticatedFarmerRoute,
+  AuthenticatedFieldSetupRoute: AuthenticatedFieldSetupRoute,
   AuthenticatedManagerRoute: AuthenticatedManagerRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
   AuthenticatedTripRoute: AuthenticatedTripRoute,
@@ -254,13 +297,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

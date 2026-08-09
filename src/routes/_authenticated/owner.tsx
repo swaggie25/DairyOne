@@ -30,7 +30,7 @@ function OwnerDashboard() {
   });
 
   return (
-    <AppShell>
+    <AppShell nav={[{ label: "Overview", to: "/owner" }, { label: "Field setup", to: "/field-setup" }]}>
       <PageHeading
         title={`Welcome${user?.fullName ? `, ${user.fullName}` : ""}`}
         subtitle="Network-wide view of every collection centre, agent and route."

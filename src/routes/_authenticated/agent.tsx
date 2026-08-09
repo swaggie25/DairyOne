@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fingerprint, Navigation, WifiOff, Milk, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -185,6 +185,9 @@ function AgentHome() {
         >
           <Navigation className="h-5 w-5" />
           {trip?.status === "in_progress" ? "Continue trip" : "Start trip"}
+        </Button>
+        <Button asChild size="lg" variant="ghost" className="h-12 text-base">
+          <Link to="/collections">My collections</Link>
         </Button>
         {!punchedIn && agent && (
           <p className="text-center text-xs text-muted-foreground">
