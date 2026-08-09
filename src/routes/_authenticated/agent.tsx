@@ -186,6 +186,9 @@ function AgentHome() {
           <Navigation className="h-5 w-5" />
           {trip?.status === "in_progress" ? "Continue trip" : "Start trip"}
         </Button>
+        <Button asChild size="lg" variant="ghost" className="h-12 text-base">
+          <Link to="/collections">My collections</Link>
+        </Button>
         {!punchedIn && agent && (
           <p className="text-center text-xs text-muted-foreground">
             Punch attendance first to unlock your trip.
