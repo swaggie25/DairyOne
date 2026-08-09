@@ -17,6 +17,7 @@ import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedBuyerRouteImport } from './routes/_authenticated/buyer'
 import { Route as AuthenticatedCollectionsRouteImport } from './routes/_authenticated/collections'
 import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated/farmer'
+import { Route as AuthenticatedFieldSetupRouteImport } from './routes/_authenticated/field-setup'
 import { Route as AuthenticatedManagerRouteImport } from './routes/_authenticated/manager'
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
 import { Route as AuthenticatedTripRouteImport } from './routes/_authenticated/trip'
@@ -61,6 +62,11 @@ const AuthenticatedFarmerRoute = AuthenticatedFarmerRouteImport.update({
   path: '/farmer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFieldSetupRoute = AuthenticatedFieldSetupRouteImport.update({
+  id: '/field-setup',
+  path: '/field-setup',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedManagerRoute = AuthenticatedManagerRouteImport.update({
   id: '/manager',
   path: '/manager',
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   '/buyer': typeof AuthenticatedBuyerRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
+  '/field-setup': typeof AuthenticatedFieldSetupRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
   '/trip': typeof AuthenticatedTripRoute
@@ -97,6 +104,7 @@ export interface FileRoutesByTo {
   '/buyer': typeof AuthenticatedBuyerRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
+  '/field-setup': typeof AuthenticatedFieldSetupRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
   '/trip': typeof AuthenticatedTripRoute
@@ -111,6 +119,7 @@ export interface FileRoutesById {
   '/_authenticated/buyer': typeof AuthenticatedBuyerRoute
   '/_authenticated/collections': typeof AuthenticatedCollectionsRoute
   '/_authenticated/farmer': typeof AuthenticatedFarmerRoute
+  '/_authenticated/field-setup': typeof AuthenticatedFieldSetupRoute
   '/_authenticated/manager': typeof AuthenticatedManagerRoute
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
   '/_authenticated/trip': typeof AuthenticatedTripRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/buyer'
     | '/collections'
     | '/farmer'
+    | '/field-setup'
     | '/manager'
     | '/owner'
     | '/trip'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/buyer'
     | '/collections'
     | '/farmer'
+    | '/field-setup'
     | '/manager'
     | '/owner'
     | '/trip'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_authenticated/buyer'
     | '/_authenticated/collections'
     | '/_authenticated/farmer'
+    | '/_authenticated/field-setup'
     | '/_authenticated/manager'
     | '/_authenticated/owner'
     | '/_authenticated/trip'
@@ -219,6 +231,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFarmerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/field-setup': {
+      id: '/_authenticated/field-setup'
+      path: '/field-setup'
+      fullPath: '/field-setup'
+      preLoaderRoute: typeof AuthenticatedFieldSetupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/manager': {
       id: '/_authenticated/manager'
       path: '/manager'
@@ -249,6 +268,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBuyerRoute: typeof AuthenticatedBuyerRoute
   AuthenticatedCollectionsRoute: typeof AuthenticatedCollectionsRoute
   AuthenticatedFarmerRoute: typeof AuthenticatedFarmerRoute
+  AuthenticatedFieldSetupRoute: typeof AuthenticatedFieldSetupRoute
   AuthenticatedManagerRoute: typeof AuthenticatedManagerRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
   AuthenticatedTripRoute: typeof AuthenticatedTripRoute
@@ -260,6 +280,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBuyerRoute: AuthenticatedBuyerRoute,
   AuthenticatedCollectionsRoute: AuthenticatedCollectionsRoute,
   AuthenticatedFarmerRoute: AuthenticatedFarmerRoute,
+  AuthenticatedFieldSetupRoute: AuthenticatedFieldSetupRoute,
   AuthenticatedManagerRoute: AuthenticatedManagerRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
   AuthenticatedTripRoute: AuthenticatedTripRoute,

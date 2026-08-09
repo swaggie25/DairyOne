@@ -51,7 +51,8 @@ function FieldSetup() {
         .select("id, name, code")
         .eq("active", true)
         .order("name");
-      if (data?.length && !mccId) setMccId(data[0].id);
+      const first = data?.[0];
+      if (first && !mccId) setMccId(first.id);
       return data ?? [];
     },
   });
