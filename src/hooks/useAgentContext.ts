@@ -17,7 +17,10 @@ export function useAgentContext() {
   return useQuery<AgentContext | null>({
     queryKey: ["agent-context", user?.userId],
     enabled: Boolean(user?.userId),
-    staleTime: 60_000,
+    // A null result right after sign-in usually means the session token wasn't
+    // attached yet — keep retrying briefly instead of caching "not linked".
+    staleTime: (query) => (query.state.data ? 60_000 : 0),
+    refetchInterval: (query) => (query.state.data ? false : 2_000),
     queryFn: async () => {
       const { data: agent } = await supabase
         .from("agents")
