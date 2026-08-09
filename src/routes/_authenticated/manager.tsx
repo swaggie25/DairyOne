@@ -28,7 +28,7 @@ function ManagerDashboard() {
   });
 
   return (
-    <AppShell>
+    <AppShell nav={[{ label: "Dashboard", to: "/manager" }, { label: "Field setup", to: "/field-setup" }]}>
       <PageHeading
         title="Centre dashboard"
         subtitle={
