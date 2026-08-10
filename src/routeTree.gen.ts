@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAccountantRouteImport } from './routes/_authenticated/accountant'
 import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/agent'
 import { Route as AuthenticatedBuyerRouteImport } from './routes/_authenticated/buyer'
+import { Route as AuthenticatedCardsRouteImport } from './routes/_authenticated/cards'
 import { Route as AuthenticatedCollectRouteImport } from './routes/_authenticated/collect'
 import { Route as AuthenticatedCollectionsRouteImport } from './routes/_authenticated/collections'
 import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated/farmer'
@@ -51,6 +52,11 @@ const AuthenticatedAgentRoute = AuthenticatedAgentRouteImport.update({
 const AuthenticatedBuyerRoute = AuthenticatedBuyerRouteImport.update({
   id: '/buyer',
   path: '/buyer',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCardsRoute = AuthenticatedCardsRouteImport.update({
+  id: '/cards',
+  path: '/cards',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCollectRoute = AuthenticatedCollectRouteImport.update({
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/buyer': typeof AuthenticatedBuyerRoute
+  '/cards': typeof AuthenticatedCardsRoute
   '/collect': typeof AuthenticatedCollectRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/buyer': typeof AuthenticatedBuyerRoute
+  '/cards': typeof AuthenticatedCardsRoute
   '/collect': typeof AuthenticatedCollectRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/_authenticated/accountant': typeof AuthenticatedAccountantRoute
   '/_authenticated/agent': typeof AuthenticatedAgentRoute
   '/_authenticated/buyer': typeof AuthenticatedBuyerRoute
+  '/_authenticated/cards': typeof AuthenticatedCardsRoute
   '/_authenticated/collect': typeof AuthenticatedCollectRoute
   '/_authenticated/collections': typeof AuthenticatedCollectionsRoute
   '/_authenticated/farmer': typeof AuthenticatedFarmerRoute
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/accountant'
     | '/agent'
     | '/buyer'
+    | '/cards'
     | '/collect'
     | '/collections'
     | '/farmer'
@@ -165,6 +175,7 @@ export interface FileRouteTypes {
     | '/accountant'
     | '/agent'
     | '/buyer'
+    | '/cards'
     | '/collect'
     | '/collections'
     | '/farmer'
@@ -181,6 +192,7 @@ export interface FileRouteTypes {
     | '/_authenticated/accountant'
     | '/_authenticated/agent'
     | '/_authenticated/buyer'
+    | '/_authenticated/cards'
     | '/_authenticated/collect'
     | '/_authenticated/collections'
     | '/_authenticated/farmer'
@@ -239,6 +251,13 @@ declare module '@tanstack/react-router' {
       path: '/buyer'
       fullPath: '/buyer'
       preLoaderRoute: typeof AuthenticatedBuyerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cards': {
+      id: '/_authenticated/cards'
+      path: '/cards'
+      fullPath: '/cards'
+      preLoaderRoute: typeof AuthenticatedCardsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/collect': {
@@ -304,6 +323,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountantRoute: typeof AuthenticatedAccountantRoute
   AuthenticatedAgentRoute: typeof AuthenticatedAgentRoute
   AuthenticatedBuyerRoute: typeof AuthenticatedBuyerRoute
+  AuthenticatedCardsRoute: typeof AuthenticatedCardsRoute
   AuthenticatedCollectRoute: typeof AuthenticatedCollectRoute
   AuthenticatedCollectionsRoute: typeof AuthenticatedCollectionsRoute
   AuthenticatedFarmerRoute: typeof AuthenticatedFarmerRoute
@@ -318,6 +338,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountantRoute: AuthenticatedAccountantRoute,
   AuthenticatedAgentRoute: AuthenticatedAgentRoute,
   AuthenticatedBuyerRoute: AuthenticatedBuyerRoute,
+  AuthenticatedCardsRoute: AuthenticatedCardsRoute,
   AuthenticatedCollectRoute: AuthenticatedCollectRoute,
   AuthenticatedCollectionsRoute: AuthenticatedCollectionsRoute,
   AuthenticatedFarmerRoute: AuthenticatedFarmerRoute,

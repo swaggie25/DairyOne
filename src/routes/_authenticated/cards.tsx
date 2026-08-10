@@ -109,7 +109,7 @@ function CardList({
         missing.map((r) => ({
           entity_type: entityType,
           entity_id: r.entityId,
-          mcc_id: mccId,
+          mcc_id: mccId ?? null,
           code_value: cardCodeFor(entityType, r.code),
         })),
       );
