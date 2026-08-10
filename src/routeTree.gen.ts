@@ -15,6 +15,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAccountantRouteImport } from './routes/_authenticated/accountant'
 import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/agent'
 import { Route as AuthenticatedBuyerRouteImport } from './routes/_authenticated/buyer'
+import { Route as AuthenticatedCollectRouteImport } from './routes/_authenticated/collect'
 import { Route as AuthenticatedCollectionsRouteImport } from './routes/_authenticated/collections'
 import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated/farmer'
 import { Route as AuthenticatedFieldSetupRouteImport } from './routes/_authenticated/field-setup'
@@ -49,6 +50,11 @@ const AuthenticatedAgentRoute = AuthenticatedAgentRouteImport.update({
 const AuthenticatedBuyerRoute = AuthenticatedBuyerRouteImport.update({
   id: '/buyer',
   path: '/buyer',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCollectRoute = AuthenticatedCollectRouteImport.update({
+  id: '/collect',
+  path: '/collect',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedCollectionsRoute =
@@ -89,6 +95,7 @@ export interface FileRoutesByFullPath {
   '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/buyer': typeof AuthenticatedBuyerRoute
+  '/collect': typeof AuthenticatedCollectRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
   '/field-setup': typeof AuthenticatedFieldSetupRoute
@@ -102,6 +109,7 @@ export interface FileRoutesByTo {
   '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/buyer': typeof AuthenticatedBuyerRoute
+  '/collect': typeof AuthenticatedCollectRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
   '/field-setup': typeof AuthenticatedFieldSetupRoute
@@ -117,6 +125,7 @@ export interface FileRoutesById {
   '/_authenticated/accountant': typeof AuthenticatedAccountantRoute
   '/_authenticated/agent': typeof AuthenticatedAgentRoute
   '/_authenticated/buyer': typeof AuthenticatedBuyerRoute
+  '/_authenticated/collect': typeof AuthenticatedCollectRoute
   '/_authenticated/collections': typeof AuthenticatedCollectionsRoute
   '/_authenticated/farmer': typeof AuthenticatedFarmerRoute
   '/_authenticated/field-setup': typeof AuthenticatedFieldSetupRoute
@@ -132,6 +141,7 @@ export interface FileRouteTypes {
     | '/accountant'
     | '/agent'
     | '/buyer'
+    | '/collect'
     | '/collections'
     | '/farmer'
     | '/field-setup'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/accountant'
     | '/agent'
     | '/buyer'
+    | '/collect'
     | '/collections'
     | '/farmer'
     | '/field-setup'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/_authenticated/accountant'
     | '/_authenticated/agent'
     | '/_authenticated/buyer'
+    | '/_authenticated/collect'
     | '/_authenticated/collections'
     | '/_authenticated/farmer'
     | '/_authenticated/field-setup'
@@ -217,6 +229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBuyerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/collect': {
+      id: '/_authenticated/collect'
+      path: '/collect'
+      fullPath: '/collect'
+      preLoaderRoute: typeof AuthenticatedCollectRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/collections': {
       id: '/_authenticated/collections'
       path: '/collections'
@@ -266,6 +285,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountantRoute: typeof AuthenticatedAccountantRoute
   AuthenticatedAgentRoute: typeof AuthenticatedAgentRoute
   AuthenticatedBuyerRoute: typeof AuthenticatedBuyerRoute
+  AuthenticatedCollectRoute: typeof AuthenticatedCollectRoute
   AuthenticatedCollectionsRoute: typeof AuthenticatedCollectionsRoute
   AuthenticatedFarmerRoute: typeof AuthenticatedFarmerRoute
   AuthenticatedFieldSetupRoute: typeof AuthenticatedFieldSetupRoute
@@ -278,6 +298,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountantRoute: AuthenticatedAccountantRoute,
   AuthenticatedAgentRoute: AuthenticatedAgentRoute,
   AuthenticatedBuyerRoute: AuthenticatedBuyerRoute,
+  AuthenticatedCollectRoute: AuthenticatedCollectRoute,
   AuthenticatedCollectionsRoute: AuthenticatedCollectionsRoute,
   AuthenticatedFarmerRoute: AuthenticatedFarmerRoute,
   AuthenticatedFieldSetupRoute: AuthenticatedFieldSetupRoute,
@@ -297,13 +318,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
