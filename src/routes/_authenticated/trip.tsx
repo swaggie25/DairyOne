@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, ChevronDown, MapPin, Home } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, MapPin, Home, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeading } from "@/components/app-shell";
@@ -17,6 +17,8 @@ import { MilkEntryForm, type MilkEntryTarget } from "@/components/milk-entry-for
 import { useAgentContext } from "@/hooks/useAgentContext";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { getCoords } from "@/lib/geo";
+import { QrScanner } from "@/components/qr-scanner";
+import { cardCodeFor } from "@/lib/qr";
 
 export const Route = createFileRoute("/_authenticated/trip")({
   head: () => ({
@@ -46,6 +48,7 @@ function TripScreen() {
   const { pending, online } = useOfflineQueue();
   const [openPoint, setOpenPoint] = useState<string | null>(null);
   const [target, setTarget] = useState<MilkEntryTarget | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
 
   const { data: trip } = useQuery({
     queryKey: ["active-trip", agent?.agentId],
@@ -172,6 +175,18 @@ function TripScreen() {
     );
   }
 
+  const allFarmers = (points ?? []).flatMap((point) =>
+    (point.route_point_farmers ?? [])
+      .map((rpf) => rpf.farmers)
+      .filter(Boolean)
+      .map((f) => ({
+        id: f!.id,
+        full_name: f!.full_name,
+        farmer_code: f!.farmer_code,
+        pointId: point.id,
+      })),
+  );
+
   return (
     <AppShell mobileFirst>
       <PageHeading
@@ -184,6 +199,14 @@ function TripScreen() {
           Offline — {pending} entr{pending === 1 ? "y" : "ies"} waiting to sync.
         </div>
       )}
+
+      <Button
+        variant="outline"
+        className="mb-4 h-12 w-full"
+        onClick={() => setScanOpen(true)}
+      >
+        <QrCode className="h-4 w-4" /> Scan farmer QR card
+      </Button>
 
       <div className="space-y-3">
         {(points ?? []).map((point) => {
@@ -272,6 +295,36 @@ function TripScreen() {
       >
         <Home className="h-5 w-5" /> Return to MCC & close trip
       </Button>
+
+      <Dialog open={scanOpen} onOpenChange={setScanOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Scan farmer card</DialogTitle>
+          </DialogHeader>
+          <QrScanner
+            onResult={(code) => {
+              const match = allFarmers.find(
+                (f) => cardCodeFor("farmer", f.farmer_code).toUpperCase() === code,
+              );
+              if (!match) {
+                toast.error("No farmer on this route matches that card.");
+                return;
+              }
+              setScanOpen(false);
+              setTarget({
+                farmerId: match.id,
+                farmerName: match.full_name,
+                farmerCode: match.farmer_code,
+                mccId: agent!.mccId,
+                agentId: agent!.agentId,
+                routePointId: match.pointId,
+                tripId: trip.id,
+                source: "agent",
+              });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={Boolean(target)} onOpenChange={(o) => !o && setTarget(null)}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
