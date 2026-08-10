@@ -4,6 +4,7 @@ import { Building2, Users, Route as RouteIcon, MapPinned } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeading, PhaseCard, StatCard } from "@/components/app-shell";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { OWNER_NAV } from "@/lib/nav";
 
 export const Route = createFileRoute("/_authenticated/owner")({
   component: OwnerDashboard,
@@ -30,7 +31,7 @@ function OwnerDashboard() {
   });
 
   return (
-    <AppShell nav={[{ label: "Overview", to: "/owner" }, { label: "Field setup", to: "/field-setup" }]}>
+    <AppShell nav={OWNER_NAV}>
       <PageHeading
         title={`Welcome${user?.fullName ? `, ${user.fullName}` : ""}`}
         subtitle="Network-wide view of every collection centre, agent and route."

@@ -4,6 +4,7 @@ import { Users, Route as RouteIcon, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeading, PhaseCard, StatCard } from "@/components/app-shell";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { MANAGER_NAV } from "@/lib/nav";
 
 export const Route = createFileRoute("/_authenticated/manager")({
   component: ManagerDashboard,
@@ -28,7 +29,7 @@ function ManagerDashboard() {
   });
 
   return (
-    <AppShell nav={[{ label: "Dashboard", to: "/manager" }, { label: "Field setup", to: "/field-setup" }]}>
+    <AppShell nav={MANAGER_NAV}>
       <PageHeading
         title="Centre dashboard"
         subtitle={
