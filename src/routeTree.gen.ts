@@ -21,6 +21,7 @@ import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFieldSetupRouteImport } from './routes/_authenticated/field-setup'
 import { Route as AuthenticatedManagerRouteImport } from './routes/_authenticated/manager'
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
+import { Route as AuthenticatedTransfersRouteImport } from './routes/_authenticated/transfers'
 import { Route as AuthenticatedTripRouteImport } from './routes/_authenticated/trip'
 
 const IndexRoute = IndexRouteImport.update({
@@ -83,6 +84,11 @@ const AuthenticatedOwnerRoute = AuthenticatedOwnerRouteImport.update({
   path: '/owner',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTransfersRoute = AuthenticatedTransfersRouteImport.update({
+  id: '/transfers',
+  path: '/transfers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTripRoute = AuthenticatedTripRouteImport.update({
   id: '/trip',
   path: '/trip',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/field-setup': typeof AuthenticatedFieldSetupRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
+  '/transfers': typeof AuthenticatedTransfersRoute
   '/trip': typeof AuthenticatedTripRoute
 }
 export interface FileRoutesByTo {
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/field-setup': typeof AuthenticatedFieldSetupRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
+  '/transfers': typeof AuthenticatedTransfersRoute
   '/trip': typeof AuthenticatedTripRoute
 }
 export interface FileRoutesById {
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/_authenticated/field-setup': typeof AuthenticatedFieldSetupRoute
   '/_authenticated/manager': typeof AuthenticatedManagerRoute
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
+  '/_authenticated/transfers': typeof AuthenticatedTransfersRoute
   '/_authenticated/trip': typeof AuthenticatedTripRoute
 }
 export interface FileRouteTypes {
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/field-setup'
     | '/manager'
     | '/owner'
+    | '/transfers'
     | '/trip'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/field-setup'
     | '/manager'
     | '/owner'
+    | '/transfers'
     | '/trip'
   id:
     | '__root__'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/_authenticated/field-setup'
     | '/_authenticated/manager'
     | '/_authenticated/owner'
+    | '/_authenticated/transfers'
     | '/_authenticated/trip'
   fileRoutesById: FileRoutesById
 }
@@ -271,6 +283,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOwnerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/transfers': {
+      id: '/_authenticated/transfers'
+      path: '/transfers'
+      fullPath: '/transfers'
+      preLoaderRoute: typeof AuthenticatedTransfersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/trip': {
       id: '/_authenticated/trip'
       path: '/trip'
@@ -291,6 +310,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFieldSetupRoute: typeof AuthenticatedFieldSetupRoute
   AuthenticatedManagerRoute: typeof AuthenticatedManagerRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
+  AuthenticatedTransfersRoute: typeof AuthenticatedTransfersRoute
   AuthenticatedTripRoute: typeof AuthenticatedTripRoute
 }
 
@@ -304,6 +324,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFieldSetupRoute: AuthenticatedFieldSetupRoute,
   AuthenticatedManagerRoute: AuthenticatedManagerRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
+  AuthenticatedTransfersRoute: AuthenticatedTransfersRoute,
   AuthenticatedTripRoute: AuthenticatedTripRoute,
 }
 
