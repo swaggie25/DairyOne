@@ -24,6 +24,7 @@ import { Route as AuthenticatedManagerRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
 import { Route as AuthenticatedTransfersRouteImport } from './routes/_authenticated/transfers'
 import { Route as AuthenticatedTripRouteImport } from './routes/_authenticated/trip'
+import { Route as AuthenticatedCardCodeRouteImport } from './routes/_authenticated/card.$code'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -100,6 +101,11 @@ const AuthenticatedTripRoute = AuthenticatedTripRouteImport.update({
   path: '/trip',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCardCodeRoute = AuthenticatedCardCodeRouteImport.update({
+  id: '/card/$code',
+  path: '/card/$code',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/owner': typeof AuthenticatedOwnerRoute
   '/transfers': typeof AuthenticatedTransfersRoute
   '/trip': typeof AuthenticatedTripRoute
+  '/card/$code': typeof AuthenticatedCardCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/owner': typeof AuthenticatedOwnerRoute
   '/transfers': typeof AuthenticatedTransfersRoute
   '/trip': typeof AuthenticatedTripRoute
+  '/card/$code': typeof AuthenticatedCardCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
   '/_authenticated/transfers': typeof AuthenticatedTransfersRoute
   '/_authenticated/trip': typeof AuthenticatedTripRoute
+  '/_authenticated/card/$code': typeof AuthenticatedCardCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/owner'
     | '/transfers'
     | '/trip'
+    | '/card/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/owner'
     | '/transfers'
     | '/trip'
+    | '/card/$code'
   id:
     | '__root__'
     | '/'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/_authenticated/owner'
     | '/_authenticated/transfers'
     | '/_authenticated/trip'
+    | '/_authenticated/card/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -316,6 +328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTripRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/card/$code': {
+      id: '/_authenticated/card/$code'
+      path: '/card/$code'
+      fullPath: '/card/$code'
+      preLoaderRoute: typeof AuthenticatedCardCodeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -332,6 +351,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
   AuthenticatedTransfersRoute: typeof AuthenticatedTransfersRoute
   AuthenticatedTripRoute: typeof AuthenticatedTripRoute
+  AuthenticatedCardCodeRoute: typeof AuthenticatedCardCodeRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -347,6 +367,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
   AuthenticatedTransfersRoute: AuthenticatedTransfersRoute,
   AuthenticatedTripRoute: AuthenticatedTripRoute,
+  AuthenticatedCardCodeRoute: AuthenticatedCardCodeRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
