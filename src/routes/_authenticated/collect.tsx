@@ -66,7 +66,7 @@ function CollectScreen() {
   );
 }
 
-function AgentQueue({ mccId }: { mccId?: string }) {
+function AgentQueue({ mccId }: { mccId: string | undefined }) {
   const queryClient = useQueryClient();
   const { data: rows } = useQuery({
     queryKey: ["pending-collections", mccId],
@@ -170,7 +170,7 @@ function AgentQueue({ mccId }: { mccId?: string }) {
   );
 }
 
-function CentreWalkIn({ mccId }: { mccId?: string }) {
+function CentreWalkIn({ mccId }: { mccId: string | undefined }) {
   const [search, setSearch] = useState("");
   const [scanOpen, setScanOpen] = useState(false);
   const [selected, setSelected] = useState<Farmer | null>(null);
