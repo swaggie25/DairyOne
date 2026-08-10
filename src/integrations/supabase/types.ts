@@ -129,6 +129,53 @@ export type Database = {
           },
         ]
       }
+      buyers: {
+        Row: {
+          active: boolean
+          city: string | null
+          code: string
+          contact_person: string | null
+          created_at: string
+          id: string
+          name: string
+          phone: string | null
+          profile_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          city?: string | null
+          code: string
+          contact_person?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          city?: string | null
+          code?: string
+          contact_person?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "buyers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       farmer_animals: {
         Row: {
           animal_count: number
@@ -580,6 +627,50 @@ export type Database = {
         }
         Relationships: []
       }
+      qr_cards: {
+        Row: {
+          active: boolean
+          card_type: string
+          code_value: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          issued_at: string
+          mcc_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          card_type?: string
+          code_value: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          issued_at?: string
+          mcc_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          card_type?: string
+          code_value?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          issued_at?: string
+          mcc_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qr_cards_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       quality_tests: {
         Row: {
           acidity: number | null
@@ -869,6 +960,117 @@ export type Database = {
           },
           {
             foreignKeyName: "routes_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transfer_collections: {
+        Row: {
+          collection_id: string
+          created_at: string
+          id: string
+          transfer_id: string
+        }
+        Insert: {
+          collection_id: string
+          created_at?: string
+          id?: string
+          transfer_id: string
+        }
+        Update: {
+          collection_id?: string
+          created_at?: string
+          id?: string
+          transfer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfer_collections_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: true
+            referencedRelation: "milk_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfer_collections_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "transfers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transfers: {
+        Row: {
+          avg_fat: number | null
+          avg_snf: number | null
+          buyer_id: string
+          created_at: string
+          created_by: string | null
+          dispatched_at: string | null
+          id: string
+          mcc_id: string
+          notes: string | null
+          quantity_litres: number
+          received_at: string | null
+          session: string
+          status: string
+          tanker_id: string | null
+          transfer_date: string
+          updated_at: string
+          vehicle_no: string | null
+        }
+        Insert: {
+          avg_fat?: number | null
+          avg_snf?: number | null
+          buyer_id: string
+          created_at?: string
+          created_by?: string | null
+          dispatched_at?: string | null
+          id?: string
+          mcc_id: string
+          notes?: string | null
+          quantity_litres?: number
+          received_at?: string | null
+          session?: string
+          status?: string
+          tanker_id?: string | null
+          transfer_date?: string
+          updated_at?: string
+          vehicle_no?: string | null
+        }
+        Update: {
+          avg_fat?: number | null
+          avg_snf?: number | null
+          buyer_id?: string
+          created_at?: string
+          created_by?: string | null
+          dispatched_at?: string | null
+          id?: string
+          mcc_id?: string
+          notes?: string | null
+          quantity_litres?: number
+          received_at?: string | null
+          session?: string
+          status?: string
+          tanker_id?: string | null
+          transfer_date?: string
+          updated_at?: string
+          vehicle_no?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transfers_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "buyers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transfers_mcc_id_fkey"
             columns: ["mcc_id"]
             isOneToOne: false
             referencedRelation: "mcc_centres"
