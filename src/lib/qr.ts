@@ -25,5 +25,5 @@ export async function qrDataUrl(codeValue: string, size = 256): Promise<string> 
 export function normalizeScan(raw: string): string {
   const value = raw.trim();
   const match = value.match(/\/card\/([^/?#]+)/);
-  return decodeURIComponent(match ? match[1] : value).toUpperCase();
+  return decodeURIComponent(match?.[1] ?? value).toUpperCase();
 }
