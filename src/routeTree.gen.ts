@@ -15,12 +15,16 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedAccountantRouteImport } from './routes/_authenticated/accountant'
 import { Route as AuthenticatedAgentRouteImport } from './routes/_authenticated/agent'
 import { Route as AuthenticatedBuyerRouteImport } from './routes/_authenticated/buyer'
+import { Route as AuthenticatedCardsRouteImport } from './routes/_authenticated/cards'
+import { Route as AuthenticatedCollectRouteImport } from './routes/_authenticated/collect'
 import { Route as AuthenticatedCollectionsRouteImport } from './routes/_authenticated/collections'
 import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated/farmer'
 import { Route as AuthenticatedFieldSetupRouteImport } from './routes/_authenticated/field-setup'
 import { Route as AuthenticatedManagerRouteImport } from './routes/_authenticated/manager'
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
+import { Route as AuthenticatedTransfersRouteImport } from './routes/_authenticated/transfers'
 import { Route as AuthenticatedTripRouteImport } from './routes/_authenticated/trip'
+import { Route as AuthenticatedCardCodeRouteImport } from './routes/_authenticated/card.$code'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -51,6 +55,16 @@ const AuthenticatedBuyerRoute = AuthenticatedBuyerRouteImport.update({
   path: '/buyer',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCardsRoute = AuthenticatedCardsRouteImport.update({
+  id: '/cards',
+  path: '/cards',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCollectRoute = AuthenticatedCollectRouteImport.update({
+  id: '/collect',
+  path: '/collect',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCollectionsRoute =
   AuthenticatedCollectionsRouteImport.update({
     id: '/collections',
@@ -77,9 +91,19 @@ const AuthenticatedOwnerRoute = AuthenticatedOwnerRouteImport.update({
   path: '/owner',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedTransfersRoute = AuthenticatedTransfersRouteImport.update({
+  id: '/transfers',
+  path: '/transfers',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTripRoute = AuthenticatedTripRouteImport.update({
   id: '/trip',
   path: '/trip',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCardCodeRoute = AuthenticatedCardCodeRouteImport.update({
+  id: '/card/$code',
+  path: '/card/$code',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 
@@ -89,12 +113,16 @@ export interface FileRoutesByFullPath {
   '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/buyer': typeof AuthenticatedBuyerRoute
+  '/cards': typeof AuthenticatedCardsRoute
+  '/collect': typeof AuthenticatedCollectRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
   '/field-setup': typeof AuthenticatedFieldSetupRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
+  '/transfers': typeof AuthenticatedTransfersRoute
   '/trip': typeof AuthenticatedTripRoute
+  '/card/$code': typeof AuthenticatedCardCodeRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -102,12 +130,16 @@ export interface FileRoutesByTo {
   '/accountant': typeof AuthenticatedAccountantRoute
   '/agent': typeof AuthenticatedAgentRoute
   '/buyer': typeof AuthenticatedBuyerRoute
+  '/cards': typeof AuthenticatedCardsRoute
+  '/collect': typeof AuthenticatedCollectRoute
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
   '/field-setup': typeof AuthenticatedFieldSetupRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
+  '/transfers': typeof AuthenticatedTransfersRoute
   '/trip': typeof AuthenticatedTripRoute
+  '/card/$code': typeof AuthenticatedCardCodeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -117,12 +149,16 @@ export interface FileRoutesById {
   '/_authenticated/accountant': typeof AuthenticatedAccountantRoute
   '/_authenticated/agent': typeof AuthenticatedAgentRoute
   '/_authenticated/buyer': typeof AuthenticatedBuyerRoute
+  '/_authenticated/cards': typeof AuthenticatedCardsRoute
+  '/_authenticated/collect': typeof AuthenticatedCollectRoute
   '/_authenticated/collections': typeof AuthenticatedCollectionsRoute
   '/_authenticated/farmer': typeof AuthenticatedFarmerRoute
   '/_authenticated/field-setup': typeof AuthenticatedFieldSetupRoute
   '/_authenticated/manager': typeof AuthenticatedManagerRoute
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
+  '/_authenticated/transfers': typeof AuthenticatedTransfersRoute
   '/_authenticated/trip': typeof AuthenticatedTripRoute
+  '/_authenticated/card/$code': typeof AuthenticatedCardCodeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,12 +168,16 @@ export interface FileRouteTypes {
     | '/accountant'
     | '/agent'
     | '/buyer'
+    | '/cards'
+    | '/collect'
     | '/collections'
     | '/farmer'
     | '/field-setup'
     | '/manager'
     | '/owner'
+    | '/transfers'
     | '/trip'
+    | '/card/$code'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -145,12 +185,16 @@ export interface FileRouteTypes {
     | '/accountant'
     | '/agent'
     | '/buyer'
+    | '/cards'
+    | '/collect'
     | '/collections'
     | '/farmer'
     | '/field-setup'
     | '/manager'
     | '/owner'
+    | '/transfers'
     | '/trip'
+    | '/card/$code'
   id:
     | '__root__'
     | '/'
@@ -159,12 +203,16 @@ export interface FileRouteTypes {
     | '/_authenticated/accountant'
     | '/_authenticated/agent'
     | '/_authenticated/buyer'
+    | '/_authenticated/cards'
+    | '/_authenticated/collect'
     | '/_authenticated/collections'
     | '/_authenticated/farmer'
     | '/_authenticated/field-setup'
     | '/_authenticated/manager'
     | '/_authenticated/owner'
+    | '/_authenticated/transfers'
     | '/_authenticated/trip'
+    | '/_authenticated/card/$code'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -217,6 +265,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBuyerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/cards': {
+      id: '/_authenticated/cards'
+      path: '/cards'
+      fullPath: '/cards'
+      preLoaderRoute: typeof AuthenticatedCardsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/collect': {
+      id: '/_authenticated/collect'
+      path: '/collect'
+      fullPath: '/collect'
+      preLoaderRoute: typeof AuthenticatedCollectRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/collections': {
       id: '/_authenticated/collections'
       path: '/collections'
@@ -252,11 +314,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOwnerRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/transfers': {
+      id: '/_authenticated/transfers'
+      path: '/transfers'
+      fullPath: '/transfers'
+      preLoaderRoute: typeof AuthenticatedTransfersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/trip': {
       id: '/_authenticated/trip'
       path: '/trip'
       fullPath: '/trip'
       preLoaderRoute: typeof AuthenticatedTripRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/card/$code': {
+      id: '/_authenticated/card/$code'
+      path: '/card/$code'
+      fullPath: '/card/$code'
+      preLoaderRoute: typeof AuthenticatedCardCodeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
   }
@@ -266,24 +342,32 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAccountantRoute: typeof AuthenticatedAccountantRoute
   AuthenticatedAgentRoute: typeof AuthenticatedAgentRoute
   AuthenticatedBuyerRoute: typeof AuthenticatedBuyerRoute
+  AuthenticatedCardsRoute: typeof AuthenticatedCardsRoute
+  AuthenticatedCollectRoute: typeof AuthenticatedCollectRoute
   AuthenticatedCollectionsRoute: typeof AuthenticatedCollectionsRoute
   AuthenticatedFarmerRoute: typeof AuthenticatedFarmerRoute
   AuthenticatedFieldSetupRoute: typeof AuthenticatedFieldSetupRoute
   AuthenticatedManagerRoute: typeof AuthenticatedManagerRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
+  AuthenticatedTransfersRoute: typeof AuthenticatedTransfersRoute
   AuthenticatedTripRoute: typeof AuthenticatedTripRoute
+  AuthenticatedCardCodeRoute: typeof AuthenticatedCardCodeRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAccountantRoute: AuthenticatedAccountantRoute,
   AuthenticatedAgentRoute: AuthenticatedAgentRoute,
   AuthenticatedBuyerRoute: AuthenticatedBuyerRoute,
+  AuthenticatedCardsRoute: AuthenticatedCardsRoute,
+  AuthenticatedCollectRoute: AuthenticatedCollectRoute,
   AuthenticatedCollectionsRoute: AuthenticatedCollectionsRoute,
   AuthenticatedFarmerRoute: AuthenticatedFarmerRoute,
   AuthenticatedFieldSetupRoute: AuthenticatedFieldSetupRoute,
   AuthenticatedManagerRoute: AuthenticatedManagerRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
+  AuthenticatedTransfersRoute: AuthenticatedTransfersRoute,
   AuthenticatedTripRoute: AuthenticatedTripRoute,
+  AuthenticatedCardCodeRoute: AuthenticatedCardCodeRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
