@@ -131,7 +131,7 @@ export default function LiveMap({
         const last = trail[trail.length - 1]!;
         const trip = trips.find((t) => t.agent_id === agentId);
         return (
-          <div key={agentId}>
+          <Fragment key={agentId}>
             {trail.length > 1 && (
               <Polyline positions={trail} pathOptions={{ color, weight: 4, opacity: 0.7 }} />
             )}
@@ -144,7 +144,7 @@ export default function LiveMap({
                 {trip?.agents?.full_name ?? "Agent"}
               </Tooltip>
             </CircleMarker>
-          </div>
+          </Fragment>
         );
       })}
     </MapContainer>
