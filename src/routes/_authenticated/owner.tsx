@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, Users, Route as RouteIcon, MapPinned } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
