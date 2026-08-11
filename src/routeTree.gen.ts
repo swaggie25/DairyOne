@@ -20,6 +20,7 @@ import { Route as AuthenticatedCollectRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCollectionsRouteImport } from './routes/_authenticated/collections'
 import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated/farmer'
 import { Route as AuthenticatedFieldSetupRouteImport } from './routes/_authenticated/field-setup'
+import { Route as AuthenticatedLiveRouteImport } from './routes/_authenticated/live'
 import { Route as AuthenticatedManagerRouteImport } from './routes/_authenticated/manager'
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
 import { Route as AuthenticatedTransfersRouteImport } from './routes/_authenticated/transfers'
@@ -81,6 +82,11 @@ const AuthenticatedFieldSetupRoute = AuthenticatedFieldSetupRouteImport.update({
   path: '/field-setup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLiveRoute = AuthenticatedLiveRouteImport.update({
+  id: '/live',
+  path: '/live',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedManagerRoute = AuthenticatedManagerRouteImport.update({
   id: '/manager',
   path: '/manager',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
   '/field-setup': typeof AuthenticatedFieldSetupRoute
+  '/live': typeof AuthenticatedLiveRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
   '/transfers': typeof AuthenticatedTransfersRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
   '/field-setup': typeof AuthenticatedFieldSetupRoute
+  '/live': typeof AuthenticatedLiveRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
   '/transfers': typeof AuthenticatedTransfersRoute
@@ -154,6 +162,7 @@ export interface FileRoutesById {
   '/_authenticated/collections': typeof AuthenticatedCollectionsRoute
   '/_authenticated/farmer': typeof AuthenticatedFarmerRoute
   '/_authenticated/field-setup': typeof AuthenticatedFieldSetupRoute
+  '/_authenticated/live': typeof AuthenticatedLiveRoute
   '/_authenticated/manager': typeof AuthenticatedManagerRoute
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
   '/_authenticated/transfers': typeof AuthenticatedTransfersRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/collections'
     | '/farmer'
     | '/field-setup'
+    | '/live'
     | '/manager'
     | '/owner'
     | '/transfers'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/collections'
     | '/farmer'
     | '/field-setup'
+    | '/live'
     | '/manager'
     | '/owner'
     | '/transfers'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/_authenticated/collections'
     | '/_authenticated/farmer'
     | '/_authenticated/field-setup'
+    | '/_authenticated/live'
     | '/_authenticated/manager'
     | '/_authenticated/owner'
     | '/_authenticated/transfers'
@@ -300,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFieldSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/live': {
+      id: '/_authenticated/live'
+      path: '/live'
+      fullPath: '/live'
+      preLoaderRoute: typeof AuthenticatedLiveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/manager': {
       id: '/_authenticated/manager'
       path: '/manager'
@@ -347,6 +366,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCollectionsRoute: typeof AuthenticatedCollectionsRoute
   AuthenticatedFarmerRoute: typeof AuthenticatedFarmerRoute
   AuthenticatedFieldSetupRoute: typeof AuthenticatedFieldSetupRoute
+  AuthenticatedLiveRoute: typeof AuthenticatedLiveRoute
   AuthenticatedManagerRoute: typeof AuthenticatedManagerRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
   AuthenticatedTransfersRoute: typeof AuthenticatedTransfersRoute
@@ -363,6 +383,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCollectionsRoute: AuthenticatedCollectionsRoute,
   AuthenticatedFarmerRoute: AuthenticatedFarmerRoute,
   AuthenticatedFieldSetupRoute: AuthenticatedFieldSetupRoute,
+  AuthenticatedLiveRoute: AuthenticatedLiveRoute,
   AuthenticatedManagerRoute: AuthenticatedManagerRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
   AuthenticatedTransfersRoute: AuthenticatedTransfersRoute,
@@ -381,13 +402,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

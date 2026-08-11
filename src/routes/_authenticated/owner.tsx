@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Building2, Users, Route as RouteIcon, MapPinned } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -48,9 +48,11 @@ function OwnerDashboard() {
           <MapPinned className="h-8 w-8 text-primary" />
           <p className="mt-3 font-semibold">Consolidated live map</p>
           <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Every active agent trip and route-point progress, updating live. Arrives with the
-            tracking phase.
+            Every active agent trip and route-point progress, updating live.
           </p>
+          <Link to="/live" className="mt-4 text-sm font-medium text-primary underline">
+            Open live operations
+          </Link>
         </div>
         <PhaseCard
           phase="Next"
