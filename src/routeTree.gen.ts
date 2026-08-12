@@ -20,9 +20,12 @@ import { Route as AuthenticatedCollectRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCollectionsRouteImport } from './routes/_authenticated/collections'
 import { Route as AuthenticatedFarmerRouteImport } from './routes/_authenticated/farmer'
 import { Route as AuthenticatedFieldSetupRouteImport } from './routes/_authenticated/field-setup'
+import { Route as AuthenticatedFinanceRouteImport } from './routes/_authenticated/finance'
 import { Route as AuthenticatedLiveRouteImport } from './routes/_authenticated/live'
 import { Route as AuthenticatedManagerRouteImport } from './routes/_authenticated/manager'
 import { Route as AuthenticatedOwnerRouteImport } from './routes/_authenticated/owner'
+import { Route as AuthenticatedQualityRouteImport } from './routes/_authenticated/quality'
+import { Route as AuthenticatedReportsRouteImport } from './routes/_authenticated/reports'
 import { Route as AuthenticatedTransfersRouteImport } from './routes/_authenticated/transfers'
 import { Route as AuthenticatedTripRouteImport } from './routes/_authenticated/trip'
 import { Route as AuthenticatedCardCodeRouteImport } from './routes/_authenticated/card.$code'
@@ -82,6 +85,11 @@ const AuthenticatedFieldSetupRoute = AuthenticatedFieldSetupRouteImport.update({
   path: '/field-setup',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFinanceRoute = AuthenticatedFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedLiveRoute = AuthenticatedLiveRouteImport.update({
   id: '/live',
   path: '/live',
@@ -95,6 +103,16 @@ const AuthenticatedManagerRoute = AuthenticatedManagerRouteImport.update({
 const AuthenticatedOwnerRoute = AuthenticatedOwnerRouteImport.update({
   id: '/owner',
   path: '/owner',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedQualityRoute = AuthenticatedQualityRouteImport.update({
+  id: '/quality',
+  path: '/quality',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedReportsRoute = AuthenticatedReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTransfersRoute = AuthenticatedTransfersRouteImport.update({
@@ -124,9 +142,12 @@ export interface FileRoutesByFullPath {
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
   '/field-setup': typeof AuthenticatedFieldSetupRoute
+  '/finance': typeof AuthenticatedFinanceRoute
   '/live': typeof AuthenticatedLiveRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
+  '/quality': typeof AuthenticatedQualityRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/transfers': typeof AuthenticatedTransfersRoute
   '/trip': typeof AuthenticatedTripRoute
   '/card/$code': typeof AuthenticatedCardCodeRoute
@@ -142,9 +163,12 @@ export interface FileRoutesByTo {
   '/collections': typeof AuthenticatedCollectionsRoute
   '/farmer': typeof AuthenticatedFarmerRoute
   '/field-setup': typeof AuthenticatedFieldSetupRoute
+  '/finance': typeof AuthenticatedFinanceRoute
   '/live': typeof AuthenticatedLiveRoute
   '/manager': typeof AuthenticatedManagerRoute
   '/owner': typeof AuthenticatedOwnerRoute
+  '/quality': typeof AuthenticatedQualityRoute
+  '/reports': typeof AuthenticatedReportsRoute
   '/transfers': typeof AuthenticatedTransfersRoute
   '/trip': typeof AuthenticatedTripRoute
   '/card/$code': typeof AuthenticatedCardCodeRoute
@@ -162,9 +186,12 @@ export interface FileRoutesById {
   '/_authenticated/collections': typeof AuthenticatedCollectionsRoute
   '/_authenticated/farmer': typeof AuthenticatedFarmerRoute
   '/_authenticated/field-setup': typeof AuthenticatedFieldSetupRoute
+  '/_authenticated/finance': typeof AuthenticatedFinanceRoute
   '/_authenticated/live': typeof AuthenticatedLiveRoute
   '/_authenticated/manager': typeof AuthenticatedManagerRoute
   '/_authenticated/owner': typeof AuthenticatedOwnerRoute
+  '/_authenticated/quality': typeof AuthenticatedQualityRoute
+  '/_authenticated/reports': typeof AuthenticatedReportsRoute
   '/_authenticated/transfers': typeof AuthenticatedTransfersRoute
   '/_authenticated/trip': typeof AuthenticatedTripRoute
   '/_authenticated/card/$code': typeof AuthenticatedCardCodeRoute
@@ -182,9 +209,12 @@ export interface FileRouteTypes {
     | '/collections'
     | '/farmer'
     | '/field-setup'
+    | '/finance'
     | '/live'
     | '/manager'
     | '/owner'
+    | '/quality'
+    | '/reports'
     | '/transfers'
     | '/trip'
     | '/card/$code'
@@ -200,9 +230,12 @@ export interface FileRouteTypes {
     | '/collections'
     | '/farmer'
     | '/field-setup'
+    | '/finance'
     | '/live'
     | '/manager'
     | '/owner'
+    | '/quality'
+    | '/reports'
     | '/transfers'
     | '/trip'
     | '/card/$code'
@@ -219,9 +252,12 @@ export interface FileRouteTypes {
     | '/_authenticated/collections'
     | '/_authenticated/farmer'
     | '/_authenticated/field-setup'
+    | '/_authenticated/finance'
     | '/_authenticated/live'
     | '/_authenticated/manager'
     | '/_authenticated/owner'
+    | '/_authenticated/quality'
+    | '/_authenticated/reports'
     | '/_authenticated/transfers'
     | '/_authenticated/trip'
     | '/_authenticated/card/$code'
@@ -312,6 +348,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFieldSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/finance': {
+      id: '/_authenticated/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof AuthenticatedFinanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/live': {
       id: '/_authenticated/live'
       path: '/live'
@@ -331,6 +374,20 @@ declare module '@tanstack/react-router' {
       path: '/owner'
       fullPath: '/owner'
       preLoaderRoute: typeof AuthenticatedOwnerRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/quality': {
+      id: '/_authenticated/quality'
+      path: '/quality'
+      fullPath: '/quality'
+      preLoaderRoute: typeof AuthenticatedQualityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/reports': {
+      id: '/_authenticated/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof AuthenticatedReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/transfers': {
@@ -366,9 +423,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCollectionsRoute: typeof AuthenticatedCollectionsRoute
   AuthenticatedFarmerRoute: typeof AuthenticatedFarmerRoute
   AuthenticatedFieldSetupRoute: typeof AuthenticatedFieldSetupRoute
+  AuthenticatedFinanceRoute: typeof AuthenticatedFinanceRoute
   AuthenticatedLiveRoute: typeof AuthenticatedLiveRoute
   AuthenticatedManagerRoute: typeof AuthenticatedManagerRoute
   AuthenticatedOwnerRoute: typeof AuthenticatedOwnerRoute
+  AuthenticatedQualityRoute: typeof AuthenticatedQualityRoute
+  AuthenticatedReportsRoute: typeof AuthenticatedReportsRoute
   AuthenticatedTransfersRoute: typeof AuthenticatedTransfersRoute
   AuthenticatedTripRoute: typeof AuthenticatedTripRoute
   AuthenticatedCardCodeRoute: typeof AuthenticatedCardCodeRoute
@@ -383,9 +443,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCollectionsRoute: AuthenticatedCollectionsRoute,
   AuthenticatedFarmerRoute: AuthenticatedFarmerRoute,
   AuthenticatedFieldSetupRoute: AuthenticatedFieldSetupRoute,
+  AuthenticatedFinanceRoute: AuthenticatedFinanceRoute,
   AuthenticatedLiveRoute: AuthenticatedLiveRoute,
   AuthenticatedManagerRoute: AuthenticatedManagerRoute,
   AuthenticatedOwnerRoute: AuthenticatedOwnerRoute,
+  AuthenticatedQualityRoute: AuthenticatedQualityRoute,
+  AuthenticatedReportsRoute: AuthenticatedReportsRoute,
   AuthenticatedTransfersRoute: AuthenticatedTransfersRoute,
   AuthenticatedTripRoute: AuthenticatedTripRoute,
   AuthenticatedCardCodeRoute: AuthenticatedCardCodeRoute,
@@ -402,13 +465,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
