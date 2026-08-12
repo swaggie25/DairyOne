@@ -36,7 +36,7 @@ export const Route = createFileRoute("/_authenticated/quality")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  component: QualityScreen;
+  component: QualityScreen,
 });
 
 function QualityScreen() {
