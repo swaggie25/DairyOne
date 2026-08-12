@@ -176,6 +176,66 @@ export type Database = {
           },
         ]
       }
+      complaints: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          farmer_id: string | null
+          id: string
+          mcc_id: string | null
+          raised_by: string | null
+          resolution: string | null
+          resolved_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          farmer_id?: string | null
+          id?: string
+          mcc_id?: string | null
+          raised_by?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          farmer_id?: string | null
+          id?: string
+          mcc_id?: string | null
+          raised_by?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaints_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "complaints_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       farmer_animals: {
         Row: {
           animal_count: number
@@ -374,6 +434,56 @@ export type Database = {
             columns: ["trip_id"]
             isOneToOne: false
             referencedRelation: "route_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ledger_entries: {
+        Row: {
+          account: string
+          amount: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          direction: string
+          entry_date: string
+          id: string
+          mcc_id: string
+          ref_id: string | null
+          ref_type: string | null
+        }
+        Insert: {
+          account: string
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          direction: string
+          entry_date?: string
+          id?: string
+          mcc_id: string
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Update: {
+          account?: string
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          direction?: string
+          entry_date?: string
+          id?: string
+          mcc_id?: string
+          ref_id?: string | null
+          ref_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
             referencedColumns: ["id"]
           },
         ]
@@ -597,6 +707,85 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          created_at: string
+          deductions: number
+          farmer_id: string
+          gross_amount: number
+          id: string
+          mcc_id: string
+          method: string
+          net_amount: number
+          paid_at: string | null
+          period_end: string
+          period_start: string
+          quantity_litres: number
+          reference: string | null
+          settlement_run_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deductions?: number
+          farmer_id: string
+          gross_amount?: number
+          id?: string
+          mcc_id: string
+          method?: string
+          net_amount?: number
+          paid_at?: string | null
+          period_end: string
+          period_start: string
+          quantity_litres?: number
+          reference?: string | null
+          settlement_run_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deductions?: number
+          farmer_id?: string
+          gross_amount?: number
+          id?: string
+          mcc_id?: string
+          method?: string
+          net_amount?: number
+          paid_at?: string | null
+          period_end?: string
+          period_start?: string
+          quantity_litres?: number
+          reference?: string | null
+          settlement_run_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_settlement_run_id_fkey"
+            columns: ["settlement_run_id"]
+            isOneToOne: false
+            referencedRelation: "settlement_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -664,6 +853,73 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "qr_cards_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quality_alerts: {
+        Row: {
+          alert_type: string
+          collection_id: string | null
+          created_at: string
+          farmer_id: string | null
+          id: string
+          mcc_id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          collection_id?: string | null
+          created_at?: string
+          farmer_id?: string | null
+          id?: string
+          mcc_id: string
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          collection_id?: string | null
+          created_at?: string
+          farmer_id?: string | null
+          id?: string
+          mcc_id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quality_alerts_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "milk_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_alerts_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quality_alerts_mcc_id_fkey"
             columns: ["mcc_id"]
             isOneToOne: false
             referencedRelation: "mcc_centres"
@@ -960,6 +1216,59 @@ export type Database = {
           },
           {
             foreignKeyName: "routes_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settlement_runs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          farmer_count: number
+          id: string
+          mcc_id: string
+          notes: string | null
+          period_end: string
+          period_start: string
+          status: string
+          total_amount: number
+          total_litres: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          farmer_count?: number
+          id?: string
+          mcc_id: string
+          notes?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          total_amount?: number
+          total_litres?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          farmer_count?: number
+          id?: string
+          mcc_id?: string
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          total_amount?: number
+          total_litres?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_runs_mcc_id_fkey"
             columns: ["mcc_id"]
             isOneToOne: false
             referencedRelation: "mcc_centres"
