@@ -73,6 +73,46 @@ function LiveOpsScreen() {
   const lastPingFor = (agentId: string) =>
     [...pingList].reverse().find((p) => p.agent_id === agentId) ?? null;
 
+  // Stops for the directions request: focused agent's route, else every active stop.
+  const focusedRouteId = focusAgentId
+    ? (tripList.find((t) => t.agent_id === focusAgentId)?.route_id ?? null)
+    : null;
+
+  const [showDirections, setShowDirections] = useState(false);
+  const routeStops = useMemo(() => {
+    const list = (points ?? [])
+      .filter((p) => p.lat != null && p.lng != null)
+      .filter((p) => (focusedRouteId ? p.route_id === focusedRouteId : true))
+      .sort((a, b) => a.sequence - b.sequence)
+      .map((p) => ({ lat: p.lat!, lng: p.lng! }));
+    return list.slice(0, 25);
+  }, [points, focusedRouteId]);
+
+  const startPoint =
+    centre?.lat != null && centre.lng != null
+      ? { lat: centre.lat, lng: centre.lng }
+      : (routeStops[0] ?? null);
+
+  const runComputeRoute = useServerFn(computeRoute);
+  const directions = useQuery({
+    queryKey: ["directions", focusedRouteId, routeStops.length, startPoint?.lat, startPoint?.lng],
+    enabled: showDirections && Boolean(startPoint) && routeStops.length > 0,
+    staleTime: 300_000,
+    retry: false,
+    queryFn: () =>
+      runComputeRoute({
+        data: {
+          origin: startPoint!,
+          destination: routeStops[routeStops.length - 1]!,
+          waypoints: routeStops.slice(0, -1),
+        },
+      }),
+  });
+
+  const km = directions.data ? (directions.data.distanceMeters / 1000).toFixed(1) : null;
+  const mins = directions.data ? Math.round(directions.data.durationSeconds / 60) : null;
+
+
   return (
     <AppShell nav={MANAGER_NAV}>
       <PageHeading
