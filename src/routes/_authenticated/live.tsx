@@ -1,7 +1,9 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, MapPinned, Milk, Users } from "lucide-react";
+import { Activity, MapPinned, Milk, Navigation, Users } from "lucide-react";
 import { ClientOnly } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeading, StatCard } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +16,11 @@ import {
   useLiveTrips,
   useRoutePoints,
 } from "@/hooks/useLiveOps";
+import { computeRoute } from "@/lib/maps.functions";
 import { formatCurrency } from "@/lib/pricing";
 import { MANAGER_NAV } from "@/lib/nav";
 
-const LiveMap = lazy(() => import("@/components/live-map"));
+const LiveMap = lazy(() => import("@/components/google-live-map"));
 
 export const Route = createFileRoute("/_authenticated/live")({
   head: () => ({
