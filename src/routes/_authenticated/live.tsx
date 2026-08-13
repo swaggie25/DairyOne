@@ -133,6 +133,33 @@ function LiveOpsScreen() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="surface-card overflow-hidden p-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-2 pt-1">
+            <p className="text-sm text-muted-foreground">
+              {focusedRouteId ? "Route for selected agent" : "All active route stops"} ·{" "}
+              {routeStops.length} stops
+            </p>
+            <div className="flex items-center gap-2">
+              {directions.data && (
+                <Badge variant="secondary">
+                  {km} km · {mins} min drive
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                variant={showDirections ? "default" : "outline"}
+                disabled={routeStops.length === 0}
+                onClick={() => setShowDirections((v) => !v)}
+              >
+                <Navigation className="mr-1 h-4 w-4" />
+                {showDirections ? "Hide directions" : "Show directions"}
+              </Button>
+            </div>
+          </div>
+          {showDirections && directions.isError && (
+            <p className="px-2 pb-2 text-xs text-destructive">
+              {(directions.error as Error).message}
+            </p>
+          )}
           <ClientOnly
             fallback={
               <div className="flex h-[420px] items-center justify-center text-sm text-muted-foreground lg:h-[560px]">
