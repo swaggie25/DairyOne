@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 /** Loads the Google Maps JS API once, on the client, using the connector browser key. */
 declare global {
   interface Window {

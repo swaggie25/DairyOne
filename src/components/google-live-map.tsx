@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 import { useEffect, useMemo, useRef, useState } from "react";
 import { decodePolyline, loadGoogleMaps } from "@/lib/google-maps-loader";
 import type { LiveCollection, LivePing, LiveRoutePoint, LiveTrip } from "@/hooks/useLiveOps";
