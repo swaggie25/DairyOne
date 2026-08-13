@@ -1,7 +1,9 @@
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, MapPinned, Milk, Users } from "lucide-react";
+import { Activity, MapPinned, Milk, Navigation, Users } from "lucide-react";
 import { ClientOnly } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { AppShell, PageHeading, StatCard } from "@/components/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +16,11 @@ import {
   useLiveTrips,
   useRoutePoints,
 } from "@/hooks/useLiveOps";
+import { computeRoute } from "@/lib/maps.functions";
 import { formatCurrency } from "@/lib/pricing";
 import { MANAGER_NAV } from "@/lib/nav";
 
-const LiveMap = lazy(() => import("@/components/live-map"));
+const LiveMap = lazy(() => import("@/components/google-live-map"));
 
 export const Route = createFileRoute("/_authenticated/live")({
   head: () => ({
@@ -70,6 +73,46 @@ function LiveOpsScreen() {
   const lastPingFor = (agentId: string) =>
     [...pingList].reverse().find((p) => p.agent_id === agentId) ?? null;
 
+  // Stops for the directions request: focused agent's route, else every active stop.
+  const focusedRouteId = focusAgentId
+    ? (tripList.find((t) => t.agent_id === focusAgentId)?.route_id ?? null)
+    : null;
+
+  const [showDirections, setShowDirections] = useState(false);
+  const routeStops = useMemo(() => {
+    const list = (points ?? [])
+      .filter((p) => p.lat != null && p.lng != null)
+      .filter((p) => (focusedRouteId ? p.route_id === focusedRouteId : true))
+      .sort((a, b) => a.sequence - b.sequence)
+      .map((p) => ({ lat: p.lat!, lng: p.lng! }));
+    return list.slice(0, 25);
+  }, [points, focusedRouteId]);
+
+  const startPoint =
+    centre?.lat != null && centre.lng != null
+      ? { lat: centre.lat, lng: centre.lng }
+      : (routeStops[0] ?? null);
+
+  const runComputeRoute = useServerFn(computeRoute);
+  const directions = useQuery({
+    queryKey: ["directions", focusedRouteId, routeStops.length, startPoint?.lat, startPoint?.lng],
+    enabled: showDirections && Boolean(startPoint) && routeStops.length > 0,
+    staleTime: 300_000,
+    retry: false,
+    queryFn: () =>
+      runComputeRoute({
+        data: {
+          origin: startPoint!,
+          destination: routeStops[routeStops.length - 1]!,
+          waypoints: routeStops.slice(0, -1),
+        },
+      }),
+  });
+
+  const km = directions.data ? (directions.data.distanceMeters / 1000).toFixed(1) : null;
+  const mins = directions.data ? Math.round(directions.data.durationSeconds / 60) : null;
+
+
   return (
     <AppShell nav={MANAGER_NAV}>
       <PageHeading
@@ -90,6 +133,33 @@ function LiveOpsScreen() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="surface-card overflow-hidden p-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-2 pb-2 pt-1">
+            <p className="text-sm text-muted-foreground">
+              {focusedRouteId ? "Route for selected agent" : "All active route stops"} ·{" "}
+              {routeStops.length} stops
+            </p>
+            <div className="flex items-center gap-2">
+              {directions.data && (
+                <Badge variant="secondary">
+                  {km} km · {mins} min drive
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                variant={showDirections ? "default" : "outline"}
+                disabled={routeStops.length === 0}
+                onClick={() => setShowDirections((v) => !v)}
+              >
+                <Navigation className="mr-1 h-4 w-4" />
+                {showDirections ? "Hide directions" : "Show directions"}
+              </Button>
+            </div>
+          </div>
+          {showDirections && directions.isError && (
+            <p className="px-2 pb-2 text-xs text-destructive">
+              {(directions.error as Error).message}
+            </p>
+          )}
           <ClientOnly
             fallback={
               <div className="flex h-[420px] items-center justify-center text-sm text-muted-foreground lg:h-[560px]">
@@ -111,6 +181,7 @@ function LiveOpsScreen() {
                 points={points ?? []}
                 collections={collectionList}
                 focusAgentId={focusAgentId}
+                directionsPolyline={showDirections ? (directions.data?.polyline ?? null) : null}
               />
             </Suspense>
           </ClientOnly>
