@@ -181,6 +181,7 @@ function LiveOpsScreen() {
                 points={points ?? []}
                 collections={collectionList}
                 focusAgentId={focusAgentId}
+                directionsPolyline={showDirections ? (directions.data?.polyline ?? null) : null}
               />
             </Suspense>
           </ClientOnly>
