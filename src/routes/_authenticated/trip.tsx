@@ -1,7 +1,17 @@
-import { useEffect, useState } from "react";
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Suspense, lazy, useState } from "react";
+import { createFileRoute, ClientOnly, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, ChevronDown, MapPin, Home, QrCode } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  ChevronDown,
+  Circle,
+  MapPin,
+  Home,
+  Navigation2,
+  QrCode,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,12 +22,22 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { MilkEntryForm, type MilkEntryTarget } from "@/components/milk-entry-form";
+import type { TripStop } from "@/components/agent-trip-map";
 
 import { useAgentContext } from "@/hooks/useAgentContext";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 import { getCoords } from "@/lib/geo";
+import { computeRoute } from "@/lib/maps.functions";
 import { QrScanner } from "@/components/qr-scanner";
 import { cardCodeFor } from "@/lib/qr";
+
+const AgentTripMap = lazy(() => import("@/components/agent-trip-map"));
+
+/** Opens native turn-by-turn navigation, the same one-tap pattern delivery-partner apps use. */
+function navigationUrl(dest: { lat: number; lng: number }) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${dest.lat},${dest.lng}&travelmode=driving`;
+}
 
 export const Route = createFileRoute("/_authenticated/trip")({
   head: () => ({
@@ -25,7 +45,8 @@ export const Route = createFileRoute("/_authenticated/trip")({
       { title: "Live trip — DairyOne field collection" },
       {
         name: "description",
-        content: "Work your route stop by stop: farmer lists, milk entry with auto rate, GPS log and offline sync.",
+        content:
+          "Work your route stop by stop: farmer lists, milk entry with auto rate, GPS log and offline sync.",
       },
     ],
   }),
@@ -43,6 +64,8 @@ type RoutePoint = {
   id: string;
   name: string;
   sequence: number;
+  lat: number | null;
+  lng: number | null;
 };
 
 type Assignment = {
@@ -138,7 +161,9 @@ function TripScreen() {
           `
           id,
           name,
-          sequence
+          sequence,
+          lat,
+          lng
         `,
         )
         .eq("route_id", trip.route_id)
@@ -293,7 +318,10 @@ function TripScreen() {
 
   const collectedFarmers = new Set(todayCollections.map((collection) => collection.farmer_id));
 
-  const totalLitres = todayCollections.reduce((sum, collection) => sum + Number(collection.quantity_litres ?? 0), 0);
+  const totalLitres = todayCollections.reduce(
+    (sum, collection) => sum + Number(collection.quantity_litres ?? 0),
+    0,
+  );
 
   /*
    * ALL FARMERS FOR QR SCANNING
@@ -309,38 +337,96 @@ function TripScreen() {
   );
 
   /*
-   * GPS PING
+   * LIVE LOCATION
+   *
+   * Continuously tracks the device (like a delivery-partner app) while the
+   * trip is active, throttling writes to gps_pings so the manager's live
+   * map updates in near real time, and giving us fresh coords locally for
+   * in-app distance/ETA and the mini route map below.
    */
 
-  useEffect(() => {
-    if (!trip?.id || !agent) return;
+  const { coords: livePos } = useLiveLocation({
+    enabled: Boolean(trip?.id && agent),
+    tripId: trip?.id ?? null,
+    agentId: agent?.agentId ?? null,
+    mccId: agent?.mccId ?? null,
+    routePointId: trip?.current_route_point_id ?? null,
+  });
 
-    const ping = async () => {
-      const coords = await getCoords();
+  /*
+   * CURRENT STOP (Zepto/Blinkit-style: one stop front-and-centre, rest as a stepper)
+   *
+   * A stop is "done" once every farmer assigned to it has a collection
+   * logged. The first stop that isn't done is the one the agent is working
+   * toward right now.
+   */
 
-      if (coords.lat == null) return;
+  const stopStatus = (point: PointWithFarmers): "done" | "current" | "upcoming" => {
+    if (point.farmers.length > 0 && point.farmers.every((f) => collectedFarmers.has(f.id))) {
+      return "done";
+    }
+    return "upcoming"; // resolved to "current" for the first one below
+  };
 
-      const { error } = await supabase.from("gps_pings").insert({
-        trip_id: trip.id,
-        agent_id: agent.agentId,
-        mcc_id: agent.mccId,
-        event_type: "ping",
-        lat: coords.lat,
-        lng: coords.lng,
-        accuracy: coords.accuracy,
-      });
+  const firstIncompleteIndex = points.findIndex((p) => stopStatus(p) !== "done");
 
-      if (error) {
-        console.error("GPS PING ERROR:", error);
-      }
-    };
+  const tripStops: TripStop[] = points.map((point, i) => ({
+    id: point.id,
+    name: point.name,
+    sequence: point.sequence,
+    lat: point.lat,
+    lng: point.lng,
+    status: i === firstIncompleteIndex ? "current" : stopStatus(point),
+  }));
 
-    void ping();
+  const currentStop = firstIncompleteIndex >= 0 ? points[firstIncompleteIndex]! : null;
 
-    const timer = window.setInterval(() => void ping(), 120000);
+  const { data: centre } = useQuery({
+    queryKey: ["trip-centre", agent?.mccId],
+    enabled: Boolean(agent?.mccId),
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("mcc_centres")
+        .select("name, lat, lng")
+        .eq("id", agent!.mccId)
+        .maybeSingle();
+      return data;
+    },
+  });
 
-    return () => window.clearInterval(timer);
-  }, [trip?.id, agent]);
+  const originForEta = livePos
+    ? { lat: livePos.lat, lng: livePos.lng }
+    : centre?.lat != null && centre.lng != null
+      ? { lat: centre.lat, lng: centre.lng }
+      : null;
+
+  const currentStopDest =
+    currentStop?.lat != null && currentStop?.lng != null
+      ? { lat: currentStop.lat, lng: currentStop.lng }
+      : null;
+
+  const runComputeRoute = useServerFn(computeRoute);
+  const directions = useQuery({
+    queryKey: [
+      "trip-directions",
+      currentStop?.id,
+      originForEta ? Math.round(originForEta.lat * 2000) : null,
+      originForEta ? Math.round(originForEta.lng * 2000) : null,
+    ],
+    enabled: Boolean(originForEta && currentStopDest),
+    staleTime: 30_000,
+    retry: false,
+    queryFn: () =>
+      runComputeRoute({
+        data: { origin: originForEta!, destination: currentStopDest! },
+      }),
+  });
+
+  const etaKm = directions.data ? (directions.data.distanceMeters / 1000).toFixed(1) : null;
+  const etaMin = directions.data
+    ? Math.max(1, Math.round(directions.data.durationSeconds / 60))
+    : null;
 
   /*
    * ARRIVE AT POINT
@@ -511,6 +597,9 @@ function TripScreen() {
   }
 
   const loadingFarmers = pointsLoading || assignmentsLoading || farmersLoading;
+  const doneCount =
+    points.length - (firstIncompleteIndex === -1 ? 0 : points.length - firstIncompleteIndex);
+  const stopsProgressPct = points.length > 0 ? Math.round((doneCount / points.length) * 100) : 0;
 
   return (
     <AppShell mobileFirst>
@@ -526,57 +615,215 @@ function TripScreen() {
         </div>
       )}
 
+      {points.length > 0 && (
+        <div className="mb-4 flex items-center gap-3">
+          <div className="h-2 flex-1 overflow-hidden rounded-full bg-secondary">
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${stopsProgressPct}%` }}
+            />
+          </div>
+          <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">
+            {doneCount}/{points.length} stops
+          </span>
+        </div>
+      )}
+
+      {/* CURRENT STOP — live map, ETA and one-tap navigation, delivery-partner style */}
+      {currentStop && (
+        <div className="surface-card mb-4 overflow-hidden">
+          <ClientOnly
+            fallback={
+              <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
+                Loading map…
+              </div>
+            }
+          >
+            <Suspense
+              fallback={
+                <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
+                  Loading map…
+                </div>
+              }
+            >
+              <AgentTripMap
+                currentPos={livePos}
+                centre={centre}
+                stops={tripStops}
+                directionsPolyline={directions.data?.polyline ?? null}
+              />
+            </Suspense>
+          </ClientOnly>
+
+          <div className="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-primary">
+                  Stop {currentStop.sequence} of {points.length}
+                </p>
+                <p className="text-lg font-semibold">{currentStop.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {currentStop.farmers.length} farmer{currentStop.farmers.length === 1 ? "" : "s"}{" "}
+                  here
+                </p>
+              </div>
+              {etaKm && etaMin && (
+                <Badge variant="secondary" className="shrink-0">
+                  {etaKm} km · {etaMin} min
+                </Badge>
+              )}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              {currentStop.lat != null && currentStop.lng != null && (
+                <Button asChild className="h-11 flex-1">
+                  <a
+                    href={navigationUrl({ lat: currentStop.lat, lng: currentStop.lng })}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Navigation2 className="h-4 w-4" />
+                    Navigate
+                  </a>
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                className="h-11 flex-1"
+                onClick={() => {
+                  const next = openPoint === currentStop.id ? null : currentStop.id;
+                  setOpenPoint(next);
+                  if (next) arrive.mutate(currentStop.id);
+                }}
+              >
+                <MapPin className="h-4 w-4" />
+                {openPoint === currentStop.id ? "Hide farmers" : "View farmers"}
+              </Button>
+            </div>
+
+            {openPoint === currentStop.id && (
+              <ul className="mt-3 divide-y divide-border rounded-lg border border-border">
+                {currentStop.farmers.map((farmer) => (
+                  <li key={farmer.id} className="flex items-center justify-between gap-3 p-3">
+                    <div>
+                      <p className="text-sm font-medium">{farmer.full_name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {farmer.farmer_code}
+                        {farmer.village ? ` · ${farmer.village}` : ""}
+                      </p>
+                    </div>
+                    {collectedFarmers.has(farmer.id) ? (
+                      <Badge variant="secondary">
+                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                        Done
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          setTarget({
+                            farmerId: farmer.id,
+                            farmerName: farmer.full_name,
+                            farmerCode: farmer.farmer_code,
+                            mccId: agent!.mccId,
+                            agentId: agent!.agentId,
+                            routePointId: currentStop.id,
+                            tripId: trip.id,
+                            source: "agent",
+                          })
+                        }
+                      >
+                        Collect
+                      </Button>
+                    )}
+                  </li>
+                ))}
+                {currentStop.farmers.length === 0 && (
+                  <li className="p-3 text-sm text-muted-foreground">
+                    No farmers linked to this stop yet.
+                  </li>
+                )}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!currentStop && points.length > 0 && (
+        <div className="surface-card mb-4 flex flex-col items-center gap-2 p-6 text-center">
+          <CheckCircle2 className="h-7 w-7 text-primary" />
+          <p className="text-sm font-medium">All stops collected</p>
+          <p className="text-xs text-muted-foreground">
+            Head back to the centre and close out the trip.
+          </p>
+        </div>
+      )}
+
       <Button variant="outline" className="mb-4 h-12 w-full" onClick={() => setScanOpen(true)}>
         <QrCode className="h-4 w-4" />
         Scan farmer QR card
       </Button>
 
-      {loadingFarmers && <div className="mb-4 text-center text-sm text-muted-foreground">Loading farmers...</div>}
+      {loadingFarmers && (
+        <div className="mb-4 text-center text-sm text-muted-foreground">Loading farmers...</div>
+      )}
 
-      <div className="space-y-3">
+      {/* ALL STOPS — compact stepper for the whole route */}
+      <p className="mb-2 text-sm font-semibold text-muted-foreground">All stops</p>
+      <div className="space-y-2">
         {points.map((point) => {
           const open = openPoint === point.id;
+          const status = tripStops.find((s) => s.id === point.id)?.status ?? "upcoming";
+          const dotColor =
+            status === "done"
+              ? "text-primary"
+              : status === "current"
+                ? "text-accent"
+                : "text-muted-foreground/40";
 
           return (
-            <div key={point.id} className="surface-card overflow-hidden">
+            <div
+              key={point.id}
+              className={`surface-card overflow-hidden ${status === "current" ? "ring-1 ring-primary/40" : ""}`}
+            >
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 p-4 text-left"
+                className="flex w-full items-center justify-between gap-3 p-3.5 text-left"
                 onClick={() => {
                   const next = open ? null : point.id;
-
                   setOpenPoint(next);
-
-                  if (next) {
-                    arrive.mutate(point.id);
-                  }
+                  if (next) arrive.mutate(point.id);
                 }}
               >
                 <span className="flex items-center gap-3">
-                  <MapPin className="h-5 w-5 text-primary" />
-
+                  {status === "done" ? (
+                    <CheckCircle2 className={`h-5 w-5 ${dotColor}`} />
+                  ) : (
+                    <Circle className={`h-5 w-5 ${dotColor}`} />
+                  )}
                   <span>
-                    <span className="block font-semibold">{point.name}</span>
-
-                    <span className="text-xs text-muted-foreground">{point.farmers.length} farmers</span>
+                    <span className="block text-sm font-semibold">
+                      {point.sequence}. {point.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {point.farmers.length} farmers
+                    </span>
                   </span>
                 </span>
 
                 <ChevronDown
-                  className={`h-5 w-5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+                  className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
                 />
               </button>
 
               {open && (
                 <ul className="divide-y divide-border border-t border-border">
                   {point.farmers.map((farmer) => (
-                    <li key={farmer.id} className="flex items-center justify-between gap-3 p-4">
+                    <li key={farmer.id} className="flex items-center justify-between gap-3 p-3.5">
                       <div>
-                        <p className="font-medium">{farmer.full_name}</p>
-
+                        <p className="text-sm font-medium">{farmer.full_name}</p>
                         <p className="text-xs text-muted-foreground">
                           {farmer.farmer_code}
-
                           {farmer.village ? ` · ${farmer.village}` : ""}
                         </p>
                       </div>
@@ -592,19 +839,12 @@ function TripScreen() {
                           onClick={() =>
                             setTarget({
                               farmerId: farmer.id,
-
                               farmerName: farmer.full_name,
-
                               farmerCode: farmer.farmer_code,
-
                               mccId: agent!.mccId,
-
                               agentId: agent!.agentId,
-
                               routePointId: point.id,
-
                               tripId: trip.id,
-
                               source: "agent",
                             })
                           }
@@ -616,7 +856,9 @@ function TripScreen() {
                   ))}
 
                   {point.farmers.length === 0 && (
-                    <li className="p-4 text-sm text-muted-foreground">No farmers linked to this stop yet.</li>
+                    <li className="p-3.5 text-sm text-muted-foreground">
+                      No farmers linked to this stop yet.
+                    </li>
                   )}
                 </ul>
               )}
@@ -649,7 +891,8 @@ function TripScreen() {
               const normalizedCode = code.toUpperCase();
 
               const match = allFarmers.find(
-                (farmer) => cardCodeFor("farmer", farmer.farmer_code).toUpperCase() === normalizedCode,
+                (farmer) =>
+                  cardCodeFor("farmer", farmer.farmer_code).toUpperCase() === normalizedCode,
               );
 
               if (!match) {
