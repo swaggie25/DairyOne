@@ -3,10 +3,18 @@ import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { normalizeScan } from "@/lib/qr";
+import type { Html5Qrcode as Html5QrcodeType } from "html5-qrcode";
 
 /**
  * Camera QR scanner with a manual-entry fallback (cameras are unreliable in
  * the field). Loads html5-qrcode only in the browser, after mount.
+ *
+ * html5-qrcode throws "Cannot stop, scanner is not running or paused" if
+ * .stop() is called while it isn't actively scanning/paused — which happens
+ * whenever a successful scan (which stops the camera itself) is immediately
+ * followed by the dialog closing and this component's unmount cleanup also
+ * calling .stop(). We guard every stop with a state check so it only ever
+ * fires while the scanner is actually running.
  */
 export function QrScanner({
   onResult,
@@ -20,33 +28,53 @@ export function QrScanner({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let stopped = false;
-    let scanner: { stop: () => Promise<void>; clear: () => void } | null = null;
+    let cancelled = false;
+    let hasResult = false;
+    let instance: Html5QrcodeType | null = null;
+
+    const safeStop = async () => {
+      if (!instance) return;
+      try {
+        const { Html5QrcodeScannerState } = await import("html5-qrcode");
+        const state = instance.getState();
+        const canStop =
+          state === Html5QrcodeScannerState.SCANNING ||
+          state === Html5QrcodeScannerState.PAUSED;
+        if (canStop) await instance.stop();
+      } catch {
+        // Already stopped, stopping, or never started — nothing to do.
+      }
+      try {
+        instance.clear();
+      } catch {
+        // Container already gone (e.g. dialog closed) — nothing to do.
+      }
+    };
 
     (async () => {
       try {
         const { Html5Qrcode } = await import("html5-qrcode");
-        const instance = new Html5Qrcode(containerId);
-        scanner = instance as unknown as typeof scanner;
+        if (cancelled) return;
+        instance = new Html5Qrcode(containerId);
         await instance.start(
           { facingMode: "environment" },
           { fps: 10, qrbox: { width: 220, height: 220 } },
           (decoded) => {
-            if (stopped) return;
-            stopped = true;
+            if (hasResult || cancelled) return;
+            hasResult = true;
             onResult(normalizeScan(decoded));
-            void instance.stop().catch(() => {});
+            void safeStop();
           },
           () => {},
         );
       } catch {
-        setError("Camera unavailable — type the card code instead.");
+        if (!cancelled) setError("Camera unavailable — type the card code instead.");
       }
     })();
 
     return () => {
-      stopped = true;
-      void scanner?.stop().catch(() => {});
+      cancelled = true;
+      void safeStop();
     };
   }, [containerId, onResult]);
 
