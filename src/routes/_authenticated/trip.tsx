@@ -125,6 +125,10 @@ function TripScreen() {
         .order("created_at", {
           ascending: false,
         })
+        // Defensive: there should only ever be one in_progress trip per agent
+        // (enforced by a DB unique index), but .limit(1) guarantees this query
+        // can never throw PGRST116 even if that invariant is ever violated.
+        .limit(1)
         .maybeSingle();
 
       if (error) {
