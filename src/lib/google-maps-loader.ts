@@ -1,5 +1,5 @@
 /// <reference types="google.maps" />
-/** Loads the Google Maps JS API once, on the client, using your own Google Maps API key. */
+/** Loads the Google Maps JS API once, on the client, using the connector browser key. */
 declare global {
   interface Window {
     google?: typeof google;
@@ -14,8 +14,11 @@ export function loadGoogleMaps(): Promise<typeof google.maps> {
   if (window.google?.maps) return Promise.resolve(window.google.maps);
   if (loaderPromise) return loaderPromise;
 
-  const key = import.meta.env["VITE_GOOGLE_MAPS_API_KEY"];
-  if (!key) return Promise.reject(new Error("Google Maps API key missing — set VITE_GOOGLE_MAPS_API_KEY"));
+  const key =
+    import.meta.env["VITE_GOOGLE_MAPS_API_KEY"] ??
+    import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY"];
+  const channel = import.meta.env["VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID"] ?? "";
+  if (!key) return Promise.reject(new Error("Google Maps browser key missing"));
 
   loaderPromise = new Promise<typeof google.maps>((resolve, reject) => {
     window.__dairyOneMapsReady = () => {
@@ -23,7 +26,9 @@ export function loadGoogleMaps(): Promise<typeof google.maps> {
       else reject(new Error("Google Maps failed to initialise"));
     };
     const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async&callback=__dairyOneMapsReady&libraries=marker`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&loading=async&callback=__dairyOneMapsReady${
+      channel ? `&channel=${channel}` : ""
+    }`;
     script.async = true;
     script.onerror = () => reject(new Error("Google Maps script failed to load"));
     document.head.appendChild(script);
