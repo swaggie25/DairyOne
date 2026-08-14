@@ -98,8 +98,9 @@ export default function GoogleLiveMap({
       title: string,
       icon: google.maps.Symbol,
       zIndex = 1,
+      label?: google.maps.MarkerLabel,
     ) => {
-      const marker = new maps.Marker({ map, position, icon, title, zIndex });
+      const marker = new maps.Marker({ map, position, icon, title, zIndex, label: label ?? null });
       marker.addListener("click", () => {
         infoRef.current?.setContent(`<div style="font-size:13px">${title}</div>`);
         infoRef.current?.open({ map, anchor: marker });
@@ -110,12 +111,26 @@ export default function GoogleLiveMap({
     };
 
     if (centre?.lat != null && centre.lng != null) {
-      addMarker({ lat: centre.lat, lng: centre.lng }, `${centre.name} (centre)`, dot("#0f172a", 9), 5);
+      addMarker(
+        { lat: centre.lat, lng: centre.lng },
+        `${centre.name} (centre)`,
+        dot("#0f172a", 9),
+        5,
+      );
     }
 
     for (const p of points) {
       if (p.lat == null || p.lng == null) continue;
-      addMarker({ lat: p.lat, lng: p.lng }, `Stop ${p.sequence}: ${p.name}`, dot("#94a3b8", 6));
+      const isCurrentForAgent = trips.some(
+        (t) => t.status === "in_progress" && t.current_route_point_id === p.id,
+      );
+      addMarker(
+        { lat: p.lat, lng: p.lng },
+        `Stop ${p.sequence}: ${p.name}${isCurrentForAgent ? " (agent here now)" : ""}`,
+        dot(isCurrentForAgent ? "#ea580c" : "#94a3b8", isCurrentForAgent ? 10 : 8),
+        isCurrentForAgent ? 8 : 2,
+        { text: String(p.sequence), color: "#ffffff", fontSize: "10px", fontWeight: "700" },
+      );
     }
 
     for (const c of collections) {
