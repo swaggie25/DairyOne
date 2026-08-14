@@ -20,34 +20,29 @@ export type RouteDirections = {
 export const computeRoute = createServerFn({ method: "POST" })
   .inputValidator((input: unknown) => routeInput.parse(input))
   .handler(async ({ data }): Promise<RouteDirections> => {
-    const lovableKey = process.env["LOVABLE_API_KEY"];
     const mapsKey = process.env["GOOGLE_MAPS_API_KEY"];
-    if (!lovableKey || !mapsKey) throw new Error("Google Maps connector is not configured.");
+    if (!mapsKey) throw new Error("GOOGLE_MAPS_API_KEY is not set on the server.");
 
     const toWaypoint = (p: { lat: number; lng: number }) => ({
       location: { latLng: { latitude: p.lat, longitude: p.lng } },
     });
 
-    const response = await fetch(
-      "https://connector-gateway.lovable.dev/google_maps/routes/directions/v2:computeRoutes",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": mapsKey,
-          "Content-Type": "application/json",
-          "X-Goog-FieldMask":
-            "routes.polyline.encodedPolyline,routes.distanceMeters,routes.duration,routes.legs.distanceMeters,routes.legs.duration",
-        },
-        body: JSON.stringify({
-          origin: toWaypoint(data.origin),
-          destination: toWaypoint(data.destination),
-          intermediates: (data.waypoints ?? []).map(toWaypoint),
-          travelMode: "DRIVE",
-          routingPreference: "TRAFFIC_AWARE",
-        }),
+    const response = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
+      method: "POST",
+      headers: {
+        "X-Goog-Api-Key": mapsKey,
+        "Content-Type": "application/json",
+        "X-Goog-FieldMask":
+          "routes.polyline.encodedPolyline,routes.distanceMeters,routes.duration,routes.legs.distanceMeters,routes.legs.duration",
       },
-    );
+      body: JSON.stringify({
+        origin: toWaypoint(data.origin),
+        destination: toWaypoint(data.destination),
+        intermediates: (data.waypoints ?? []).map(toWaypoint),
+        travelMode: "DRIVE",
+        routingPreference: "TRAFFIC_AWARE",
+      }),
+    });
 
     if (response.status === 403) {
       const details: Array<{ reason?: string }> =
