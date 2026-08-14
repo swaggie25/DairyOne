@@ -62,12 +62,17 @@ function AgentHome() {
     queryKey: ["active-trip", agent?.agentId],
     enabled: Boolean(agent?.agentId),
     queryFn: async () => {
+      // Look for ANY open trip for this agent, not just today's. A trip that
+      // was never closed out (e.g. app closed mid-route) must still be found
+      // here, otherwise startTrip below can't see it and will insert a
+      // duplicate in_progress row instead of resuming the old one.
       const { data } = await supabase
         .from("route_trips")
         .select("id, status, route_id")
         .eq("agent_id", agent!.agentId)
-        .eq("trip_date", today())
+        .eq("status", "in_progress")
         .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       return data;
     },
