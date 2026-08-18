@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Printer, Save, CloudOff } from "lucide-react";
+import { Printer, Save, CloudOff, MapPin, LockKeyhole, LockKeyholeOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SignaturePad } from "@/components/signature-pad";
-import { getCoords } from "@/lib/geo";
+import { getCoords, haversineMeters, watchCoords, type Coords } from "@/lib/geo";
 import { enqueue, flushQueue, newClientRef, type QueuedCollection } from "@/lib/offline-queue";
 import {
   formatCurrency,
@@ -41,6 +41,72 @@ function num(value: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Collection geofence lock: field entries stay disabled until the agent's
+ * live GPS is inside the stop's radius. Mirrors the server-side check in
+ * `record_milk_collection` exactly, so the button state the agent sees is
+ * never a lie — but the backend re-verifies independently regardless, so a
+ * tampered client still can't force a collection through (PART 1 §9).
+ */
+function useGeofenceLock(target: MilkEntryTarget) {
+  const enabled = target.source === "agent" && !!target.routePointId;
+
+  const { data: point } = useQuery({
+    queryKey: ["geofence-point", target.routePointId],
+    enabled,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("route_points")
+        .select("name, lat, lng, geofence_radius_m")
+        .eq("id", target.routePointId as string)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: mcc } = useQuery({
+    queryKey: ["geofence-mcc", target.mccId],
+    enabled,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("mcc_centres")
+        .select("default_geofence_radius_m, min_gps_accuracy_m")
+        .eq("id", target.mccId)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const [coords, setCoords] = useState<Coords>({ lat: null, lng: null, accuracy: null });
+  const [watching, setWatching] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) return;
+    setWatching(true);
+    const stop = watchCoords((c) => setCoords(c));
+    return () => {
+      stop();
+      setWatching(false);
+    };
+  }, [enabled, target.routePointId]);
+
+  const radius = point?.geofence_radius_m ?? mcc?.default_geofence_radius_m ?? 50;
+  const minAccuracy = mcc?.min_gps_accuracy_m ?? 100;
+  const hasPin = point?.lat != null && point?.lng != null;
+  const distance = hasPin ? haversineMeters(coords.lat, coords.lng, point!.lat, point!.lng) : null;
+  const accuracyOk = coords.accuracy == null || coords.accuracy <= minAccuracy;
+  const withinRadius = distance != null && distance <= radius;
+
+  // Not applicable (centre walk-in), or the stop simply has no GPS pin
+  // configured yet — allowed through, matching backend "unconfigured" path.
+  const locked = enabled && hasPin && (!withinRadius || !accuracyOk);
+  const ready = !enabled || !hasPin || (withinRadius && accuracyOk);
+
+  return { enabled, hasPin, watching, coords, distance, radius, accuracyOk, locked, ready, pointName: point?.name };
+}
+
 export function MilkEntryForm({
   target,
   onSaved,
@@ -60,6 +126,8 @@ export function MilkEntryForm({
   const [antibiotic, setAntibiotic] = useState("not_tested");
   const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const geofence = useGeofenceLock(target);
 
   const { data: slabs } = useQuery<RateSlab[]>({
     queryKey: ["rate-slabs", target.mccId],
@@ -91,7 +159,13 @@ export function MilkEntryForm({
       toast.error("Enter a quantity greater than zero.");
       return;
     }
+    if (geofence.locked) {
+      toast.error(`Move closer to ${geofence.pointName ?? "the collection point"} to record this entry.`);
+      return;
+    }
     setSaving(true);
+    // Grab one final fresh fix at the moment of save (not the possibly-stale
+    // watched value) so the timestamped record reflects "right now".
     const coords = await getCoords();
     const entry: QueuedCollection = {
       client_ref: newClientRef(),
@@ -118,19 +192,24 @@ export function MilkEntryForm({
       // Field entries wait for manager verification; centre walk-ins post directly.
       status: target.source === "agent" ? "pending" : "verified",
       signature_url: signature,
-      gps_lat: coords.lat,
-      gps_lng: coords.lng,
+      gps_lat: coords.lat ?? geofence.coords.lat,
+      gps_lng: coords.lng ?? geofence.coords.lng,
+      gps_accuracy: coords.accuracy ?? geofence.coords.accuracy,
       collected_at: new Date().toISOString(),
     };
 
     enqueue(entry);
-    const synced = await flushQueue();
+    const result = await flushQueue();
     setSaving(false);
-    toast.success(
-      synced > 0
-        ? `Saved ${quantityLitres} L · ${formatCurrency(amount)}`
-        : "Saved offline — will sync when network returns",
-    );
+    if (result.synced > 0) {
+      toast.success(`Saved ${quantityLitres} L · ${formatCurrency(amount)}`);
+    } else if (result.errors[0]) {
+      // Backend independently rejected it (e.g. geofence/accuracy) — kept
+      // queued, agent needs to know rather than think it silently synced.
+      toast.error(result.errors[0]);
+    } else {
+      toast.success("Saved offline — will sync when network returns");
+    }
     setQuantity("");
     setFat("");
     setClr("");
@@ -164,6 +243,42 @@ Time   : ${new Date().toLocaleString()}
 
   return (
     <div className="space-y-4">
+      {geofence.enabled && (
+        <div
+          className={`surface-card flex items-center gap-3 p-4 ${
+            geofence.locked ? "border-destructive/40 bg-destructive/5" : "border-emerald-500/40 bg-emerald-500/5"
+          }`}
+        >
+          {geofence.locked ? (
+            <LockKeyhole className="h-5 w-5 shrink-0 text-destructive" />
+          ) : (
+            <LockKeyholeOpen className="h-5 w-5 shrink-0 text-emerald-600" />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold">
+              {!geofence.hasPin
+                ? "Location not configured for this stop"
+                : geofence.locked
+                  ? "Too far to collect"
+                  : "Collection enabled"}
+            </p>
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3" />
+              {!geofence.hasPin
+                ? "Ask your manager to set this stop's GPS pin."
+                : geofence.distance != null
+                  ? `${Math.round(geofence.distance)} m away · must be within ${geofence.radius} m`
+                  : geofence.watching
+                    ? "Getting your location…"
+                    : "Location unavailable"}
+              {geofence.hasPin && geofence.coords.accuracy != null && !geofence.accuracyOk
+                ? ` · GPS accuracy ±${Math.round(geofence.coords.accuracy)}m too low`
+                : ""}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label htmlFor="session">Session</Label>
@@ -274,8 +389,9 @@ Time   : ${new Date().toLocaleString()}
       <SignaturePad onChange={setSignature} />
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <Button size="lg" className="h-14 text-base" onClick={save} disabled={saving}>
-          <Save className="h-5 w-5" /> {saving ? "Saving…" : "Save entry"}
+        <Button size="lg" className="h-14 text-base" onClick={save} disabled={saving || geofence.locked}>
+          <Save className="h-5 w-5" />
+          {saving ? "Saving…" : geofence.locked ? "Move closer to collect" : "Save entry"}
         </Button>
         <Button size="lg" variant="outline" className="h-14 text-base" onClick={printReceipt}>
           <Printer className="h-5 w-5" /> Print receipt
