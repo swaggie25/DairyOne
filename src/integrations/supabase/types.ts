@@ -1724,6 +1724,90 @@ export type Database = {
           },
         ]
       }
+      trip_exceptions: {
+        Row: {
+          agent_id: string
+          created_at: string
+          created_by: string | null
+          farmer_id: string | null
+          id: string
+          mcc_id: string
+          reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          route_point_id: string | null
+          status: string
+          trip_id: string
+          type: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          created_by?: string | null
+          farmer_id?: string | null
+          id?: string
+          mcc_id: string
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          route_point_id?: string | null
+          status?: string
+          trip_id: string
+          type: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          created_by?: string | null
+          farmer_id?: string | null
+          id?: string
+          mcc_id?: string
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          route_point_id?: string | null
+          status?: string
+          trip_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trip_exceptions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_exceptions_farmer_id_fkey"
+            columns: ["farmer_id"]
+            isOneToOne: false
+            referencedRelation: "farmers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_exceptions_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_exceptions_route_point_id_fkey"
+            columns: ["route_point_id"]
+            isOneToOne: false
+            referencedRelation: "route_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trip_exceptions_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "route_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1775,31 +1859,31 @@ export type Database = {
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       record_milk_collection: {
         Args: {
-          p_acidity: number | null
+          p_acidity: number
           p_animal_type: string
-          p_antibiotic_test_result: string | null
-          p_client_ref: string | null
-          p_clr: number | null
-          p_collected_at: string | null
+          p_antibiotic_test_result: string
+          p_client_ref: string
+          p_clr: number
+          p_collected_at: string
           p_farmer_id: string
-          p_fat_pct: number | null
-          p_gps_accuracy: number | null
-          p_gps_lat: number | null
-          p_gps_lng: number | null
+          p_fat_pct: number
+          p_gps_accuracy: number
+          p_gps_lat: number
+          p_gps_lng: number
           p_mcc_id: string
           p_quantity_litres: number
           p_rate_per_litre: number
-          p_risk_score: number | null
-          p_route_point_id: string | null
+          p_risk_score: number
+          p_route_point_id: string
           p_session: string
-          p_signature_url: string | null
-          p_snf_pct: number | null
+          p_signature_url: string
+          p_snf_pct: number
           p_source: string
-          p_temperature: number | null
+          p_temperature: number
           p_total_amount: number
-          p_trip_id: string | null
+          p_trip_id: string
           p_water_adulteration_flag: boolean
-          p_water_adulteration_pct: number | null
+          p_water_adulteration_pct: number
         }
         Returns: {
           acidity: number | null
@@ -1840,13 +1924,19 @@ export type Database = {
           water_adulteration_flag: boolean
           water_adulteration_pct: number | null
         }
+        SetofOptions: {
+          from: "*"
+          to: "milk_collections"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       save_marked_route: {
         Args: {
-          p_distance_meters: number | null
-          p_duration_seconds: number | null
+          p_distance_meters: number
+          p_duration_seconds: number
           p_name: string
-          p_polyline: string | null
+          p_polyline: string
           p_stops: Json
           p_trip_id: string
         }
