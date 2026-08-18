@@ -5,6 +5,7 @@ import { flushQueue, queueSize, subscribeQueue } from "@/lib/offline-queue";
 export function useOfflineQueue() {
   const [pending, setPending] = useState(0);
   const [online, setOnline] = useState(true);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   useEffect(() => {
     setPending(queueSize());
@@ -13,7 +14,11 @@ export function useOfflineQueue() {
 
     const sync = () => {
       setOnline(navigator.onLine);
-      if (navigator.onLine) void flushQueue();
+      if (navigator.onLine) {
+        void flushQueue().then((result) => {
+          setLastError(result.errors[0] ?? null);
+        });
+      }
     };
     window.addEventListener("online", sync);
     window.addEventListener("offline", sync);
@@ -28,5 +33,5 @@ export function useOfflineQueue() {
     };
   }, []);
 
-  return { pending, online, flush: flushQueue };
+  return { pending, online, lastError, flush: flushQueue };
 }
