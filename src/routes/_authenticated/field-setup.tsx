@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, MapPin, Users, Route as RouteIcon } from "lucide-react";
+import { Plus, MapPin, Users, Route as RouteIcon, LocateFixed, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeading } from "@/components/app-shell";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -17,6 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getCoords } from "@/lib/geo";
+
+const VEHICLE_TYPES = [
+  { value: "bike", label: "Bike" },
+  { value: "car", label: "Car" },
+  { value: "van", label: "Milk pickup van" },
+  { value: "truck", label: "Truck" },
+] as const;
 
 export const Route = createFileRoute("/_authenticated/field-setup")({
   head: () => ({
@@ -93,6 +102,7 @@ function FieldSetup() {
           <TabsList>
             <TabsTrigger value="agents">Agents</TabsTrigger>
             <TabsTrigger value="routes">Routes & stops</TabsTrigger>
+            <TabsTrigger value="assignments">Assignments</TabsTrigger>
             <TabsTrigger value="farmers">Farmers</TabsTrigger>
           </TabsList>
 
@@ -101,6 +111,9 @@ function FieldSetup() {
           </TabsContent>
           <TabsContent value="routes" className="mt-4">
             <RoutesTab mccId={mccId} />
+          </TabsContent>
+          <TabsContent value="assignments" className="mt-4">
+            <AssignmentsTab mccId={mccId} />
           </TabsContent>
           <TabsContent value="farmers" className="mt-4">
             <FarmersTab mccId={mccId} />
@@ -274,17 +287,54 @@ function RoutesTab({ mccId }: { mccId: string }) {
   const [routeName, setRouteName] = useState("");
   const [pointName, setPointName] = useState("");
   const [activeRoute, setActiveRoute] = useState<string>("");
+  const [pointCoords, setPointCoords] = useState<{ lat: number | null; lng: number | null }>({
+    lat: null,
+    lng: null,
+  });
+  const [pointRadius, setPointRadius] = useState("");
+  const [locating, setLocating] = useState(false);
 
   const { data: routes } = useQuery({
     queryKey: ["setup-routes", mccId],
     queryFn: async () => {
       const { data } = await supabase
         .from("routes")
-        .select("id, name, description, route_points(id, name, sequence)")
+        .select("id, name, description, route_points(id, name, sequence, lat, lng, geofence_radius_m)")
         .eq("mcc_id", mccId)
         .order("name");
       return data ?? [];
     },
+  });
+
+  const { data: centreGeofence } = useQuery({
+    queryKey: ["centre-geofence", mccId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("mcc_centres")
+        .select("default_geofence_radius_m, min_gps_accuracy_m")
+        .eq("id", mccId)
+        .maybeSingle();
+      return data;
+    },
+  });
+  const [radiusDraft, setRadiusDraft] = useState("");
+  const [accuracyDraft, setAccuracyDraft] = useState("");
+
+  const saveGeofenceDefaults = useMutation({
+    mutationFn: async () => {
+      const patch: { default_geofence_radius_m?: number; min_gps_accuracy_m?: number } = {};
+      if (radiusDraft.trim()) patch.default_geofence_radius_m = Number(radiusDraft);
+      if (accuracyDraft.trim()) patch.min_gps_accuracy_m = Number(accuracyDraft);
+      const { error } = await supabase.from("mcc_centres").update(patch).eq("id", mccId);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Geofence defaults updated");
+      setRadiusDraft("");
+      setAccuracyDraft("");
+      await queryClient.invalidateQueries({ queryKey: ["centre-geofence"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
   const addRoute = useMutation({
@@ -303,19 +353,38 @@ function RoutesTab({ mccId }: { mccId: string }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  async function captureHere() {
+    setLocating(true);
+    const coords = await getCoords();
+    setLocating(false);
+    if (coords.lat == null || coords.lng == null) {
+      toast.error("Couldn't get a GPS fix. Try again in open sky.");
+      return;
+    }
+    setPointCoords({ lat: coords.lat, lng: coords.lng });
+    toast.success(`Location captured (±${coords.accuracy ? Math.round(coords.accuracy) : "?"}m)`);
+  }
+
   const addPoint = useMutation({
     mutationFn: async (routeId: string) => {
       if (!pointName.trim()) throw new Error("Stop name is required.");
       const route = (routes ?? []).find((r) => r.id === routeId);
       const sequence = (route?.route_points?.length ?? 0) + 1;
-      const { error } = await supabase
-        .from("route_points")
-        .insert({ route_id: routeId, name: pointName.trim(), sequence });
+      const { error } = await supabase.from("route_points").insert({
+        route_id: routeId,
+        name: pointName.trim(),
+        sequence,
+        lat: pointCoords.lat,
+        lng: pointCoords.lng,
+        geofence_radius_m: pointRadius.trim() ? Number(pointRadius) : null,
+      });
       if (error) throw error;
     },
     onSuccess: async () => {
       toast.success("Stop added");
       setPointName("");
+      setPointCoords({ lat: null, lng: null });
+      setPointRadius("");
       await queryClient.invalidateQueries({ queryKey: ["setup-routes"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -323,6 +392,47 @@ function RoutesTab({ mccId }: { mccId: string }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+      <div className="space-y-4">
+      <div className="surface-card space-y-3 p-5">
+        <h2 className="font-semibold">Collection geofence defaults</h2>
+        <p className="text-xs text-muted-foreground">
+          Owner-configurable minimum an agent must be within to unlock a collection at any stop
+          without its own radius override. Applies centre-wide.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="def-radius">Default radius (m)</Label>
+            <Input
+              id="def-radius"
+              inputMode="numeric"
+              className="mt-1"
+              value={radiusDraft}
+              onChange={(e) => setRadiusDraft(e.target.value)}
+              placeholder={String(centreGeofence?.["default_geofence_radius_m"] ?? 50)}
+            />
+          </div>
+          <div>
+            <Label htmlFor="def-acc">Min GPS accuracy (m)</Label>
+            <Input
+              id="def-acc"
+              inputMode="numeric"
+              className="mt-1"
+              value={accuracyDraft}
+              onChange={(e) => setAccuracyDraft(e.target.value)}
+              placeholder={String(centreGeofence?.["min_gps_accuracy_m"] ?? 100)}
+            />
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => saveGeofenceDefaults.mutate()}
+          disabled={saveGeofenceDefaults.isPending || (!radiusDraft.trim() && !accuracyDraft.trim())}
+        >
+          Save defaults
+        </Button>
+      </div>
+
       <form
         className="surface-card space-y-3 p-5"
         onSubmit={(e) => {
@@ -346,6 +456,7 @@ function RoutesTab({ mccId }: { mccId: string }) {
           <Plus className="h-4 w-4" /> Create route
         </Button>
       </form>
+      </div>
 
       <div className="surface-card p-5">
         <h2 className="font-semibold">Routes & stops</h2>
@@ -360,27 +471,62 @@ function RoutesTab({ mccId }: { mccId: string }) {
                     <li key={p.id} className="flex items-center gap-2">
                       <MapPin className="h-3.5 w-3.5 text-accent" />
                       {p.sequence}. {p.name}
+                      {p.lat != null && p.lng != null ? (
+                        <span className="text-xs text-emerald-600">
+                          · pinned{p.geofence_radius_m ? ` · ${p.geofence_radius_m}m radius` : ""}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-amber-600">· no GPS pin yet</span>
+                      )}
                     </li>
                   ))}
                 {(r.route_points ?? []).length === 0 && <li>No stops yet.</li>}
               </ol>
-              <div className="mt-3 flex gap-2">
-                <Input
-                  value={activeRoute === r.id ? pointName : ""}
-                  onFocus={() => setActiveRoute(r.id)}
-                  onChange={(e) => {
-                    setActiveRoute(r.id);
-                    setPointName(e.target.value);
-                  }}
-                  placeholder="Add stop e.g. Point C — Well"
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => addPoint.mutate(r.id)}
-                  disabled={addPoint.isPending || activeRoute !== r.id}
-                >
-                  <Plus className="h-4 w-4" /> Add
-                </Button>
+              <div className="mt-3 space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={activeRoute === r.id ? pointName : ""}
+                    onFocus={() => setActiveRoute(r.id)}
+                    onChange={(e) => {
+                      setActiveRoute(r.id);
+                      setPointName(e.target.value);
+                    }}
+                    placeholder="Add stop e.g. Point C — Well"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => addPoint.mutate(r.id)}
+                    disabled={addPoint.isPending || activeRoute !== r.id}
+                  >
+                    <Plus className="h-4 w-4" /> Add
+                  </Button>
+                </div>
+                {activeRoute === r.id && (
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={captureHere}
+                      disabled={locating}
+                    >
+                      <LocateFixed className="h-3.5 w-3.5" />
+                      {locating ? "Locating…" : "Use my location for this stop"}
+                    </Button>
+                    {pointCoords.lat != null && (
+                      <span className="text-emerald-600">
+                        {pointCoords.lat.toFixed(5)}, {pointCoords.lng?.toFixed(5)}
+                      </span>
+                    )}
+                    <Input
+                      className="h-8 w-36"
+                      value={pointRadius}
+                      onChange={(e) => setPointRadius(e.target.value)}
+                      placeholder="Radius override (m)"
+                      inputMode="numeric"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           ))}
@@ -388,6 +534,266 @@ function RoutesTab({ mccId }: { mccId: string }) {
             <p className="text-sm text-muted-foreground">No routes yet.</p>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * PART 1 §4 — Route assignment: owner/manager pick a saved route, an agent,
+ * a date, a shift and a vehicle, and can lock the stop sequence or reassign.
+ * This is separate from the legacy "default route" quick-pick in the Agents
+ * tab, which still works for centres that don't need per-day scheduling.
+ */
+function AssignmentsTab({ mccId }: { mccId: string }) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState({
+    routeId: "",
+    agentId: "",
+    date: todayStr(),
+    shift: "morning",
+    vehicleType: "bike",
+    locked: true,
+  });
+
+  const { data: routes } = useQuery({
+    queryKey: ["setup-routes-lite", mccId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("routes")
+        .select("id, name")
+        .eq("mcc_id", mccId)
+        .eq("active", true)
+        .order("name");
+      return data ?? [];
+    },
+  });
+
+  const { data: agents } = useQuery({
+    queryKey: ["setup-agents-lite", mccId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("agents")
+        .select("id, full_name, employee_code")
+        .eq("mcc_id", mccId)
+        .eq("status", "active")
+        .order("full_name");
+      return data ?? [];
+    },
+  });
+
+  const { data: assignments } = useQuery({
+    queryKey: ["route-assignments", mccId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("route_assignments")
+        .select(
+          "id, assignment_date, shift, vehicle_type, sequence_locked, status, routes(name), agents(full_name, employee_code)",
+        )
+        .eq("mcc_id", mccId)
+        .gte("assignment_date", todayStr())
+        .order("assignment_date")
+        .order("shift");
+      return data ?? [];
+    },
+  });
+
+  const createAssignment = useMutation({
+    mutationFn: async () => {
+      if (!form.routeId || !form.agentId) throw new Error("Pick a route and an agent.");
+      const { error } = await supabase.from("route_assignments").insert({
+        mcc_id: mccId,
+        route_id: form.routeId,
+        agent_id: form.agentId,
+        assignment_date: form.date,
+        shift: form.shift,
+        vehicle_type: form.vehicleType,
+        sequence_locked: form.locked,
+        status: "active",
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Route assigned");
+      await queryClient.invalidateQueries({ queryKey: ["route-assignments"] });
+    },
+    onError: (e: Error) =>
+      toast.error(
+        e.message.includes("route_assignments_agent_slot_unique")
+          ? "This agent already has an active assignment for that date & shift. Reassign or cancel it first."
+          : e.message,
+      ),
+  });
+
+  const setStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from("route_assignments").update({ status }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["route-assignments"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggleLock = useMutation({
+    mutationFn: async ({ id, locked }: { id: string; locked: boolean }) => {
+      const { error } = await supabase
+        .from("route_assignments")
+        .update({ sequence_locked: locked })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["route-assignments"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+      <form
+        className="surface-card space-y-3 p-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          createAssignment.mutate();
+        }}
+      >
+        <h2 className="flex items-center gap-2 font-semibold">
+          <CalendarClock className="h-4 w-4 text-primary" /> Assign a route
+        </h2>
+        <div>
+          <Label>Route</Label>
+          <Select value={form.routeId} onValueChange={(v) => setForm({ ...form, routeId: v })}>
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Choose a saved route" />
+            </SelectTrigger>
+            <SelectContent>
+              {(routes ?? []).map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Agent</Label>
+          <Select value={form.agentId} onValueChange={(v) => setForm({ ...form, agentId: v })}>
+            <SelectTrigger className="mt-1">
+              <SelectValue placeholder="Choose an agent" />
+            </SelectTrigger>
+            <SelectContent>
+              {(agents ?? []).map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.full_name} ({a.employee_code})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label htmlFor="assign-date">Date</Label>
+            <Input
+              id="assign-date"
+              type="date"
+              className="mt-1"
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+            />
+          </div>
+          <div>
+            <Label>Shift</Label>
+            <Select value={form.shift} onValueChange={(v) => setForm({ ...form, shift: v })}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Morning</SelectItem>
+                <SelectItem value="evening">Evening</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Label>Vehicle</Label>
+          <Select value={form.vehicleType} onValueChange={(v) => setForm({ ...form, vehicleType: v })}>
+            <SelectTrigger className="mt-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {VEHICLE_TYPES.map((v) => (
+                <SelectItem key={v.value} value={v.value}>
+                  {v.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center justify-between rounded-lg border border-border p-3">
+          <div>
+            <p className="text-sm font-medium">Lock stop sequence</p>
+            <p className="text-xs text-muted-foreground">
+              Agent must complete stops in order when locked.
+            </p>
+          </div>
+          <Switch checked={form.locked} onCheckedChange={(v) => setForm({ ...form, locked: v })} />
+        </div>
+        <Button type="submit" disabled={createAssignment.isPending} className="w-full">
+          <Plus className="h-4 w-4" /> Assign route
+        </Button>
+      </form>
+
+      <div className="surface-card p-5">
+        <h2 className="font-semibold">Upcoming & active assignments</h2>
+        <ul className="mt-3 divide-y divide-border">
+          {(assignments ?? []).map((a) => (
+            <li key={a.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+              <div>
+                <p className="font-medium">
+                  {a.routes?.name} → {a.agents?.full_name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {a.assignment_date} · {a.shift} · {a.vehicle_type}
+                  {" · "}
+                  <Badge variant={a.status === "active" ? "secondary" : "outline"} className="ml-1">
+                    {a.status}
+                  </Badge>
+                </p>
+              </div>
+              {a.status === "active" && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                    onClick={() => toggleLock.mutate({ id: a.id, locked: !a.sequence_locked })}
+                  >
+                    <Switch checked={a.sequence_locked} onCheckedChange={() => toggleLock.mutate({ id: a.id, locked: !a.sequence_locked })} />
+                    Locked
+                  </button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setStatus.mutate({ id: a.id, status: "cancelled" })}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
+            </li>
+          ))}
+          {(assignments ?? []).length === 0 && (
+            <li className="py-6 text-sm text-muted-foreground">
+              No upcoming assignments. Agents without a dated assignment fall back to their default
+              route from the Agents tab, if any.
+            </li>
+          )}
+        </ul>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import {
   Home,
   Navigation2,
   QrCode,
+  LockKeyhole,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -384,6 +385,12 @@ function TripScreen() {
   }));
 
   const currentStop = firstIncompleteIndex >= 0 ? points[firstIncompleteIndex]! : null;
+
+  // PART 1 §4 — a manager/owner can lock the stop sequence when assigning a
+  // route; while locked, only the current stop's farmers can be collected
+  // from the "All stops" list (the featured card above is always the
+  // current stop anyway). Defaults to locked, matching the DB default.
+  const sequenceLocked = agent?.sequenceLocked ?? true;
 
   const { data: centre } = useQuery({
     queryKey: ["trip-centre", agent?.mccId],
@@ -837,6 +844,11 @@ function TripScreen() {
                           <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
                           Done
                         </Badge>
+                      ) : sequenceLocked && point.id !== currentStop?.id ? (
+                        <Button size="sm" variant="outline" disabled title="Complete earlier stops first">
+                          <LockKeyhole className="h-3.5 w-3.5" />
+                          Locked
+                        </Button>
                       ) : (
                         <Button
                           size="sm"

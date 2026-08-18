@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fingerprint, Navigation, WifiOff, Milk, CheckCircle2, RefreshCw } from "lucide-react";
+import { Fingerprint, Navigation, WifiOff, Milk, CheckCircle2, RefreshCw, MapPinned } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeading, StatCard } from "@/components/app-shell";
@@ -71,6 +71,7 @@ function AgentHome() {
         .select("id, status, route_id")
         .eq("agent_id", agent!.agentId)
         .eq("status", "in_progress")
+        .eq("trip_type", "assigned")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -137,6 +138,8 @@ function AgentHome() {
           agent_id: agent.agentId,
           mcc_id: agent.mccId,
           route_id: agent.routeId,
+          route_assignment_id: agent.assignmentId,
+          vehicle_type: agent.vehicleType ?? "bike",
           status: "in_progress",
           started_at: new Date().toISOString(),
         })
@@ -194,6 +197,14 @@ function AgentHome() {
         <Button asChild size="lg" variant="ghost" className="h-12 text-base">
           <Link to="/collections">My collections</Link>
         </Button>
+        {agent && (
+          <Button asChild size="lg" variant="ghost" className="h-12 text-base">
+            <Link to="/route-marking">
+              <MapPinned className="h-4 w-4" />
+              Mark a new route
+            </Link>
+          </Button>
+        )}
         {!punchedIn && agent && (
           <p className="text-center text-xs text-muted-foreground">
             Punch attendance first to unlock your trip.
