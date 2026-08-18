@@ -277,6 +277,7 @@ export type Database = {
           created_at: string
           farmer_code: string
           full_name: string
+          geofence_radius_m: number | null
           id: string
           ifsc: string | null
           mcc_id: string
@@ -292,6 +293,7 @@ export type Database = {
           created_at?: string
           farmer_code: string
           full_name: string
+          geofence_radius_m?: number | null
           id?: string
           ifsc?: string | null
           mcc_id: string
@@ -307,6 +309,7 @@ export type Database = {
           created_at?: string
           farmer_code?: string
           full_name?: string
+          geofence_radius_m?: number | null
           id?: string
           ifsc?: string | null
           mcc_id?: string
@@ -375,36 +378,42 @@ export type Database = {
           accuracy: number | null
           agent_id: string
           event_type: string
+          halt_seconds: number | null
           id: string
           lat: number | null
           lng: number | null
           mcc_id: string
           recorded_at: string
           route_point_id: string | null
+          speed_kmh: number | null
           trip_id: string | null
         }
         Insert: {
           accuracy?: number | null
           agent_id: string
           event_type?: string
+          halt_seconds?: number | null
           id?: string
           lat?: number | null
           lng?: number | null
           mcc_id: string
           recorded_at?: string
           route_point_id?: string | null
+          speed_kmh?: number | null
           trip_id?: string | null
         }
         Update: {
           accuracy?: number | null
           agent_id?: string
           event_type?: string
+          halt_seconds?: number | null
           id?: string
           lat?: number | null
           lng?: number | null
           mcc_id?: string
           recorded_at?: string
           route_point_id?: string | null
+          speed_kmh?: number | null
           trip_id?: string | null
         }
         Relationships: [
@@ -493,10 +502,12 @@ export type Database = {
           active: boolean
           code: string
           created_at: string
+          default_geofence_radius_m: number
           district: string | null
           id: string
           lat: number | null
           lng: number | null
+          min_gps_accuracy_m: number
           name: string
           state: string | null
           updated_at: string
@@ -506,10 +517,12 @@ export type Database = {
           active?: boolean
           code: string
           created_at?: string
+          default_geofence_radius_m?: number
           district?: string | null
           id?: string
           lat?: number | null
           lng?: number | null
+          min_gps_accuracy_m?: number
           name: string
           state?: string | null
           updated_at?: string
@@ -519,10 +532,12 @@ export type Database = {
           active?: boolean
           code?: string
           created_at?: string
+          default_geofence_radius_m?: number
           district?: string | null
           id?: string
           lat?: number | null
           lng?: number | null
+          min_gps_accuracy_m?: number
           name?: string
           state?: string | null
           updated_at?: string
@@ -541,8 +556,11 @@ export type Database = {
           collected_at: string
           created_at: string
           created_by: string | null
+          distance_from_point_m: number | null
           farmer_id: string
           fat_pct: number | null
+          geofence_radius_m: number | null
+          gps_accuracy_m: number | null
           gps_lat: number | null
           gps_lng: number | null
           id: string
@@ -561,6 +579,7 @@ export type Database = {
           total_amount: number
           trip_id: string | null
           updated_at: string
+          verification_result: string | null
           verified_at: string | null
           verified_by: string | null
           water_adulteration_flag: boolean
@@ -576,8 +595,11 @@ export type Database = {
           collected_at?: string
           created_at?: string
           created_by?: string | null
+          distance_from_point_m?: number | null
           farmer_id: string
           fat_pct?: number | null
+          geofence_radius_m?: number | null
+          gps_accuracy_m?: number | null
           gps_lat?: number | null
           gps_lng?: number | null
           id?: string
@@ -596,6 +618,7 @@ export type Database = {
           total_amount?: number
           trip_id?: string | null
           updated_at?: string
+          verification_result?: string | null
           verified_at?: string | null
           verified_by?: string | null
           water_adulteration_flag?: boolean
@@ -611,8 +634,11 @@ export type Database = {
           collected_at?: string
           created_at?: string
           created_by?: string | null
+          distance_from_point_m?: number | null
           farmer_id?: string
           fat_pct?: number | null
+          geofence_radius_m?: number | null
+          gps_accuracy_m?: number | null
           gps_lat?: number | null
           gps_lng?: number | null
           id?: string
@@ -631,6 +657,7 @@ export type Database = {
           total_amount?: number
           trip_id?: string | null
           updated_at?: string
+          verification_result?: string | null
           verified_at?: string | null
           verified_by?: string | null
           water_adulteration_flag?: boolean
@@ -1027,6 +1054,257 @@ export type Database = {
           },
         ]
       }
+      route_assignments: {
+        Row: {
+          agent_id: string
+          assignment_date: string
+          created_at: string
+          created_by: string | null
+          id: string
+          mcc_id: string
+          notes: string | null
+          route_id: string
+          sequence_locked: boolean
+          shift: string
+          status: string
+          updated_at: string
+          vehicle_type: string
+        }
+        Insert: {
+          agent_id: string
+          assignment_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mcc_id: string
+          notes?: string | null
+          route_id: string
+          sequence_locked?: boolean
+          shift?: string
+          status?: string
+          updated_at?: string
+          vehicle_type?: string
+        }
+        Update: {
+          agent_id?: string
+          assignment_date?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mcc_id?: string
+          notes?: string | null
+          route_id?: string
+          sequence_locked?: boolean
+          shift?: string
+          status?: string
+          updated_at?: string
+          vehicle_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_assignments_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_assignments_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_assignments_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      route_change_requests: {
+        Row: {
+          agent_id: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_note: string | null
+          deviation_id: string | null
+          id: string
+          mcc_id: string
+          original_route_id: string | null
+          proposed_distance_meters: number | null
+          proposed_duration_seconds: number | null
+          proposed_polyline: string | null
+          reason_code: string | null
+          reason_text: string | null
+          requested_at: string
+          requires_approval: boolean
+          status: string
+          trip_id: string
+          voice_note_url: string | null
+          voice_transcription: string | null
+        }
+        Insert: {
+          agent_id: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          deviation_id?: string | null
+          id?: string
+          mcc_id: string
+          original_route_id?: string | null
+          proposed_distance_meters?: number | null
+          proposed_duration_seconds?: number | null
+          proposed_polyline?: string | null
+          reason_code?: string | null
+          reason_text?: string | null
+          requested_at?: string
+          requires_approval?: boolean
+          status?: string
+          trip_id: string
+          voice_note_url?: string | null
+          voice_transcription?: string | null
+        }
+        Update: {
+          agent_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_note?: string | null
+          deviation_id?: string | null
+          id?: string
+          mcc_id?: string
+          original_route_id?: string | null
+          proposed_distance_meters?: number | null
+          proposed_duration_seconds?: number | null
+          proposed_polyline?: string | null
+          reason_code?: string | null
+          reason_text?: string | null
+          requested_at?: string
+          requires_approval?: boolean
+          status?: string
+          trip_id?: string
+          voice_note_url?: string | null
+          voice_transcription?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_change_requests_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_change_requests_deviation_id_fkey"
+            columns: ["deviation_id"]
+            isOneToOne: false
+            referencedRelation: "route_deviations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_change_requests_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_change_requests_original_route_id_fkey"
+            columns: ["original_route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_change_requests_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "route_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      route_deviations: {
+        Row: {
+          agent_id: string
+          created_at: string
+          detected_at: string
+          deviation_meters: number | null
+          id: string
+          lat: number | null
+          lng: number | null
+          mcc_id: string
+          reason_code: string | null
+          reason_text: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          trip_id: string
+          voice_note_url: string | null
+          voice_transcription: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          detected_at?: string
+          deviation_meters?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          mcc_id: string
+          reason_code?: string | null
+          reason_text?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          trip_id: string
+          voice_note_url?: string | null
+          voice_transcription?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          detected_at?: string
+          deviation_meters?: number | null
+          id?: string
+          lat?: number | null
+          lng?: number | null
+          mcc_id?: string
+          reason_code?: string | null
+          reason_text?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          trip_id?: string
+          voice_note_url?: string | null
+          voice_transcription?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_deviations_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_deviations_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_deviations_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: false
+            referencedRelation: "route_trips"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       route_point_farmers: {
         Row: {
           farmer_id: string
@@ -1066,6 +1344,7 @@ export type Database = {
       route_points: {
         Row: {
           created_at: string
+          geofence_radius_m: number | null
           id: string
           lat: number | null
           lng: number | null
@@ -1075,6 +1354,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          geofence_radius_m?: number | null
           id?: string
           lat?: number | null
           lng?: number | null
@@ -1084,6 +1364,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          geofence_radius_m?: number | null
           id?: string
           lat?: number | null
           lng?: number | null
@@ -1103,46 +1384,67 @@ export type Database = {
       }
       route_trips: {
         Row: {
+          actual_distance_meters: number | null
+          actual_duration_seconds: number | null
           agent_id: string
           created_at: string
           current_route_point_id: string | null
+          deviation_count: number
           ended_at: string | null
           id: string
           mcc_id: string
-          route_id: string
+          planned_polyline: string | null
+          route_assignment_id: string | null
+          route_id: string | null
           session: string
           started_at: string | null
           status: string
           trip_date: string
+          trip_type: string
           updated_at: string
+          vehicle_type: string
         }
         Insert: {
+          actual_distance_meters?: number | null
+          actual_duration_seconds?: number | null
           agent_id: string
           created_at?: string
           current_route_point_id?: string | null
+          deviation_count?: number
           ended_at?: string | null
           id?: string
           mcc_id: string
-          route_id: string
+          planned_polyline?: string | null
+          route_assignment_id?: string | null
+          route_id?: string | null
           session?: string
           started_at?: string | null
           status?: string
           trip_date?: string
+          trip_type?: string
           updated_at?: string
+          vehicle_type?: string
         }
         Update: {
+          actual_distance_meters?: number | null
+          actual_duration_seconds?: number | null
           agent_id?: string
           created_at?: string
           current_route_point_id?: string | null
+          deviation_count?: number
           ended_at?: string | null
           id?: string
           mcc_id?: string
-          route_id?: string
+          planned_polyline?: string | null
+          route_assignment_id?: string | null
+          route_id?: string | null
           session?: string
           started_at?: string | null
           status?: string
           trip_date?: string
+          trip_type?: string
           updated_at?: string
+          vehicle_type?: string
         }
         Relationships: [
           {
@@ -1167,6 +1469,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "route_trips_route_assignment_id_fkey"
+            columns: ["route_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "route_assignments"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "route_trips_route_id_fkey"
             columns: ["route_id"]
             isOneToOne: false
@@ -1180,30 +1489,51 @@ export type Database = {
           active: boolean
           assigned_agent_id: string | null
           created_at: string
+          created_by: string | null
+          created_from_trip_id: string | null
+          default_vehicle_type: string
           description: string | null
+          distance_meters: number | null
+          duration_seconds: number | null
           id: string
           mcc_id: string
           name: string
+          polyline: string | null
+          source: string
           updated_at: string
         }
         Insert: {
           active?: boolean
           assigned_agent_id?: string | null
           created_at?: string
+          created_by?: string | null
+          created_from_trip_id?: string | null
+          default_vehicle_type?: string
           description?: string | null
+          distance_meters?: number | null
+          duration_seconds?: number | null
           id?: string
           mcc_id: string
           name: string
+          polyline?: string | null
+          source?: string
           updated_at?: string
         }
         Update: {
           active?: boolean
           assigned_agent_id?: string | null
           created_at?: string
+          created_by?: string | null
+          created_from_trip_id?: string | null
+          default_vehicle_type?: string
           description?: string | null
+          distance_meters?: number | null
+          duration_seconds?: number | null
           id?: string
           mcc_id?: string
           name?: string
+          polyline?: string | null
+          source?: string
           updated_at?: string
         }
         Relationships: [
@@ -1212,6 +1542,13 @@ export type Database = {
             columns: ["assigned_agent_id"]
             isOneToOne: false
             referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routes_created_from_trip_id_fkey"
+            columns: ["created_from_trip_id"]
+            isOneToOne: false
+            referencedRelation: "route_trips"
             referencedColumns: ["id"]
           },
           {
@@ -1431,7 +1768,90 @@ export type Database = {
         }
         Returns: boolean
       }
+      haversine_meters: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      record_milk_collection: {
+        Args: {
+          p_acidity: number | null
+          p_animal_type: string
+          p_antibiotic_test_result: string | null
+          p_client_ref: string | null
+          p_clr: number | null
+          p_collected_at: string | null
+          p_farmer_id: string
+          p_fat_pct: number | null
+          p_gps_accuracy: number | null
+          p_gps_lat: number | null
+          p_gps_lng: number | null
+          p_mcc_id: string
+          p_quantity_litres: number
+          p_rate_per_litre: number
+          p_risk_score: number | null
+          p_route_point_id: string | null
+          p_session: string
+          p_signature_url: string | null
+          p_snf_pct: number | null
+          p_source: string
+          p_temperature: number | null
+          p_total_amount: number
+          p_trip_id: string | null
+          p_water_adulteration_flag: boolean
+          p_water_adulteration_pct: number | null
+        }
+        Returns: {
+          acidity: number | null
+          agent_id: string | null
+          animal_type: string
+          antibiotic_test_result: string | null
+          client_ref: string | null
+          clr: number | null
+          collected_at: string
+          created_at: string
+          created_by: string | null
+          distance_from_point_m: number | null
+          farmer_id: string
+          fat_pct: number | null
+          geofence_radius_m: number | null
+          gps_accuracy_m: number | null
+          gps_lat: number | null
+          gps_lng: number | null
+          id: string
+          mcc_id: string
+          offline_synced_at: string | null
+          quantity_litres: number
+          rate_per_litre: number
+          risk_score: number | null
+          route_point_id: string | null
+          session: string
+          signature_url: string | null
+          snf_pct: number | null
+          source: string
+          status: string
+          temperature: number | null
+          total_amount: number
+          trip_id: string | null
+          updated_at: string
+          verification_result: string | null
+          verified_at: string | null
+          verified_by: string | null
+          water_adulteration_flag: boolean
+          water_adulteration_pct: number | null
+        }
+      }
+      save_marked_route: {
+        Args: {
+          p_distance_meters: number | null
+          p_duration_seconds: number | null
+          p_name: string
+          p_polyline: string | null
+          p_stops: Json
+          p_trip_id: string
+        }
+        Returns: string
+      }
       user_mcc_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
