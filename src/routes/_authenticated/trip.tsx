@@ -12,6 +12,7 @@ import {
   Navigation2,
   QrCode,
   LockKeyhole,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -19,6 +20,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeading } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -93,6 +102,16 @@ function TripScreen() {
   const [target, setTarget] = useState<MilkEntryTarget | null>(null);
 
   const [scanOpen, setScanOpen] = useState(false);
+
+  // PHASE 1 §5 — Exception Basics. `exceptionTarget` is either a farmer
+  // (unavailable/skipped) or null with routePointId set (route issue/other).
+  const [exceptionTarget, setExceptionTarget] = useState<{
+    farmerId: string | null;
+    farmerName: string | null;
+    routePointId: string | null;
+  } | null>(null);
+  const [exceptionType, setExceptionType] = useState("farmer_unavailable");
+  const [exceptionReason, setExceptionReason] = useState("");
 
   /*
    * ACTIVE TRIP
@@ -329,6 +348,55 @@ function TripScreen() {
   );
 
   /*
+   * TRIP EXCEPTIONS — farmer unavailable/skipped resolves a stop without a
+   * collection; route issue/other are trip-level and don't block anything.
+   */
+
+  const { data: exceptions = [] } = useQuery({
+    queryKey: ["trip-exceptions", trip?.id],
+    enabled: Boolean(trip?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("trip_exceptions")
+        .select("id, farmer_id, route_point_id, type, reason, status")
+        .eq("trip_id", trip!.id);
+      if (error) {
+        console.error("TRIP EXCEPTIONS ERROR:", error);
+        throw error;
+      }
+      return data ?? [];
+    },
+  });
+
+  const exceptedFarmers = new Set(
+    exceptions.filter((e) => e.farmer_id).map((e) => e.farmer_id as string),
+  );
+  const openExceptionCount = exceptions.filter((e) => e.status === "open").length;
+
+  const logException = useMutation({
+    mutationFn: async () => {
+      if (!trip || !agent || !exceptionTarget) return;
+      const { error } = await supabase.from("trip_exceptions").insert({
+        trip_id: trip.id,
+        agent_id: agent.agentId,
+        mcc_id: agent.mccId,
+        route_point_id: exceptionTarget.routePointId,
+        farmer_id: exceptionTarget.farmerId,
+        type: exceptionType,
+        reason: exceptionReason || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Exception logged");
+      setExceptionTarget(null);
+      setExceptionReason("");
+      void queryClient.invalidateQueries({ queryKey: ["trip-exceptions"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  /*
    * ALL FARMERS FOR QR SCANNING
    */
 
@@ -367,7 +435,10 @@ function TripScreen() {
    */
 
   const stopStatus = (point: PointWithFarmers): "done" | "current" | "upcoming" => {
-    if (point.farmers.length > 0 && point.farmers.every((f) => collectedFarmers.has(f.id))) {
+    if (
+      point.farmers.length > 0 &&
+      point.farmers.every((f) => collectedFarmers.has(f.id) || exceptedFarmers.has(f.id))
+    ) {
       return "done";
     }
     return "upcoming"; // resolved to "current" for the first one below
@@ -607,6 +678,62 @@ function TripScreen() {
     );
   }
 
+  function farmerAction(farmer: Farmer, pointId: string) {
+    if (collectedFarmers.has(farmer.id)) {
+      return (
+        <Badge variant="secondary">
+          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+          Done
+        </Badge>
+      );
+    }
+    const exception = exceptions.find((e) => e.farmer_id === farmer.id);
+    if (exception) {
+      return (
+        <Badge variant="outline">
+          <AlertTriangle className="mr-1 h-3.5 w-3.5" />
+          {exception.type === "farmer_unavailable" ? "Unavailable" : "Skipped"}
+        </Badge>
+      );
+    }
+    return (
+      <div className="flex shrink-0 gap-1.5">
+        <Button
+          size="sm"
+          onClick={() =>
+            setTarget({
+              farmerId: farmer.id,
+              farmerName: farmer.full_name,
+              farmerCode: farmer.farmer_code,
+              mccId: agent!.mccId,
+              agentId: agent!.agentId,
+              routePointId: pointId,
+              tripId: trip!.id,
+              source: "agent",
+            })
+          }
+        >
+          Collect
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          title="Farmer unavailable / skip"
+          onClick={() => {
+            setExceptionType("farmer_unavailable");
+            setExceptionTarget({
+              farmerId: farmer.id,
+              farmerName: farmer.full_name,
+              routePointId: pointId,
+            });
+          }}
+        >
+          <AlertTriangle className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    );
+  }
+
   const loadingFarmers = pointsLoading || assignmentsLoading || farmersLoading;
   const doneCount =
     points.length - (firstIncompleteIndex === -1 ? 0 : points.length - firstIncompleteIndex);
@@ -616,7 +743,11 @@ function TripScreen() {
     <AppShell mobileFirst>
       <PageHeading
         title={agent?.routeName ?? "Today's route"}
-        subtitle={`${collectedFarmers.size} farmers done · ${totalLitres.toFixed(1)} L collected`}
+        subtitle={`${collectedFarmers.size} farmers done · ${totalLitres.toFixed(1)} L collected${
+          openExceptionCount > 0
+            ? ` · ${openExceptionCount} open exception${openExceptionCount === 1 ? "" : "s"}`
+            : ""
+        }`}
       />
 
       {!online && (
@@ -710,6 +841,21 @@ function TripScreen() {
                 <MapPin className="h-4 w-4" />
                 {openPoint === currentStop.id ? "Hide farmers" : "View farmers"}
               </Button>
+              <Button
+                variant="outline"
+                className="h-11"
+                onClick={() => {
+                  setExceptionType("route_issue");
+                  setExceptionTarget({
+                    farmerId: null,
+                    farmerName: null,
+                    routePointId: currentStop.id,
+                  });
+                }}
+              >
+                <AlertTriangle className="h-4 w-4" />
+                Report issue
+              </Button>
             </div>
 
             {openPoint === currentStop.id && (
@@ -723,30 +869,7 @@ function TripScreen() {
                         {farmer.village ? ` · ${farmer.village}` : ""}
                       </p>
                     </div>
-                    {collectedFarmers.has(farmer.id) ? (
-                      <Badge variant="secondary">
-                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                        Done
-                      </Badge>
-                    ) : (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          setTarget({
-                            farmerId: farmer.id,
-                            farmerName: farmer.full_name,
-                            farmerCode: farmer.farmer_code,
-                            mccId: agent!.mccId,
-                            agentId: agent!.agentId,
-                            routePointId: currentStop.id,
-                            tripId: trip.id,
-                            source: "agent",
-                          })
-                        }
-                      >
-                        Collect
-                      </Button>
-                    )}
+                    {farmerAction(farmer, currentStop.id)}
                   </li>
                 ))}
                 {currentStop.farmers.length === 0 && (
@@ -839,34 +962,21 @@ function TripScreen() {
                         </p>
                       </div>
 
-                      {collectedFarmers.has(farmer.id) ? (
-                        <Badge variant="secondary">
-                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                          Done
-                        </Badge>
-                      ) : sequenceLocked && point.id !== currentStop?.id ? (
-                        <Button size="sm" variant="outline" disabled title="Complete earlier stops first">
+                      {!collectedFarmers.has(farmer.id) &&
+                      !exceptions.some((e) => e.farmer_id === farmer.id) &&
+                      sequenceLocked &&
+                      point.id !== currentStop?.id ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled
+                          title="Complete earlier stops first"
+                        >
                           <LockKeyhole className="h-3.5 w-3.5" />
                           Locked
                         </Button>
                       ) : (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            setTarget({
-                              farmerId: farmer.id,
-                              farmerName: farmer.full_name,
-                              farmerCode: farmer.farmer_code,
-                              mccId: agent!.mccId,
-                              agentId: agent!.agentId,
-                              routePointId: point.id,
-                              tripId: trip.id,
-                              source: "agent",
-                            })
-                          }
-                        >
-                          Collect
-                        </Button>
+                        farmerAction(farmer, point.id)
                       )}
                     </li>
                   ))}
@@ -968,6 +1078,64 @@ function TripScreen() {
               }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* EXCEPTION — farmer unavailable/skipped, or a route-level issue */}
+
+      <Dialog
+        open={Boolean(exceptionTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setExceptionTarget(null);
+            setExceptionReason("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {exceptionTarget?.farmerName
+                ? `Report issue — ${exceptionTarget.farmerName}`
+                : "Report route issue"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <Select value={exceptionType} onValueChange={setExceptionType}>
+              <SelectTrigger className="h-12">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {exceptionTarget?.farmerId ? (
+                  <>
+                    <SelectItem value="farmer_unavailable">Farmer unavailable</SelectItem>
+                    <SelectItem value="farmer_skipped">Farmer skipped</SelectItem>
+                  </>
+                ) : (
+                  <>
+                    <SelectItem value="route_issue">Route issue</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+
+            <Textarea
+              placeholder="Reason (optional)"
+              value={exceptionReason}
+              onChange={(e) => setExceptionReason(e.target.value)}
+            />
+
+            <Button
+              size="lg"
+              className="h-12 w-full"
+              disabled={logException.isPending}
+              onClick={() => logException.mutate()}
+            >
+              Log exception
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </AppShell>

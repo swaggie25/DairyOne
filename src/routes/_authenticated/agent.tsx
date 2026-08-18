@@ -1,6 +1,15 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Fingerprint, Navigation, WifiOff, Milk, CheckCircle2, RefreshCw, MapPinned } from "lucide-react";
+import {
+  Fingerprint,
+  Navigation,
+  WifiOff,
+  Milk,
+  CheckCircle2,
+  RefreshCw,
+  MapPinned,
+  AlertTriangle,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeading, StatCard } from "@/components/app-shell";
@@ -96,6 +105,55 @@ function AgentHome() {
     },
   });
 
+  const { data: openExceptions } = useQuery({
+    queryKey: ["agent-open-exceptions", agent?.agentId],
+    enabled: Boolean(agent?.agentId),
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("trip_exceptions")
+        .select("id", { count: "exact", head: true })
+        .eq("agent_id", agent!.agentId)
+        .eq("status", "open")
+        .gte("created_at", `${today()}T00:00:00Z`);
+      return count ?? 0;
+    },
+  });
+
+  // Next action: the first farmer on the active trip's route who is neither
+  // collected nor already excused via an exception.
+  const { data: nextFarmer } = useQuery({
+    queryKey: ["agent-next-farmer", trip?.id],
+    enabled: Boolean(trip?.id && trip.route_id),
+    queryFn: async () => {
+      const { data: points } = await supabase
+        .from("route_points")
+        .select("id, sequence, route_point_farmers(farmer_id, sequence, farmers(full_name))")
+        .eq("route_id", trip!.route_id as string)
+        .order("sequence");
+      const [{ data: collections }, { data: excepted }] = await Promise.all([
+        supabase.from("milk_collections").select("farmer_id").eq("trip_id", trip!.id),
+        supabase
+          .from("trip_exceptions")
+          .select("farmer_id")
+          .eq("trip_id", trip!.id)
+          .not("farmer_id", "is", null),
+      ]);
+      const resolved = new Set([
+        ...(collections ?? []).map((c) => c.farmer_id),
+        ...(excepted ?? []).map((e) => e.farmer_id as string),
+      ]);
+      for (const point of points ?? []) {
+        const farmers = [...(point.route_point_farmers ?? [])].sort(
+          (a, b) => a.sequence - b.sequence,
+        );
+        for (const f of farmers) {
+          if (!resolved.has(f.farmer_id)) return f.farmers?.full_name ?? null;
+        }
+      }
+      return null;
+    },
+  });
+
   const punch = useMutation({
     mutationFn: async () => {
       const coords = await getCoords();
@@ -162,9 +220,13 @@ function AgentHome() {
       <PageHeading
         title={`Namaste${user?.fullName ? `, ${user.fullName}` : ""}`}
         subtitle={
-          agent?.routeName
-            ? `Route: ${agent.routeName}`
-            : "Punch in, then start your route."
+          trip?.status === "in_progress" && nextFarmer
+            ? `Next: ${nextFarmer}`
+            : trip?.status === "in_progress"
+              ? "All farmers on this route are done."
+              : agent?.routeName
+                ? `Route: ${agent.routeName}`
+                : "Punch in, then start your route."
         }
       />
 
@@ -189,7 +251,9 @@ function AgentHome() {
           variant="outline"
           className="touch-tile h-16 text-base"
           disabled={!agent || !punchedIn || startTrip.isPending}
-          onClick={() => (trip?.status === "in_progress" ? navigate({ to: "/trip" }) : startTrip.mutate())}
+          onClick={() =>
+            trip?.status === "in_progress" ? navigate({ to: "/trip" }) : startTrip.mutate()
+          }
         >
           <Navigation className="h-5 w-5" />
           {trip?.status === "in_progress" ? "Continue trip" : "Start trip"}
@@ -233,6 +297,15 @@ function AgentHome() {
           </Button>
         )}
       </div>
+
+      {Boolean(openExceptions) && (
+        <div className="surface-card mt-5 flex items-center gap-3 border-accent/40 bg-accent/5 p-4">
+          <AlertTriangle className="h-5 w-5 text-accent" />
+          <p className="flex-1 text-sm text-muted-foreground">
+            {openExceptions} open exception{openExceptions === 1 ? "" : "s"} logged today.
+          </p>
+        </div>
+      )}
 
       {!agent?.routeId && agent && (
         <div className="surface-card mt-5 flex flex-col items-center p-8 text-center">
