@@ -566,6 +566,7 @@ export type Database = {
           id: string
           mcc_id: string
           offline_synced_at: string | null
+          quality_override_reason: string | null
           quantity_litres: number
           rate_per_litre: number
           risk_score: number | null
@@ -605,6 +606,7 @@ export type Database = {
           id?: string
           mcc_id: string
           offline_synced_at?: string | null
+          quality_override_reason?: string | null
           quantity_litres: number
           rate_per_litre?: number
           risk_score?: number | null
@@ -644,6 +646,7 @@ export type Database = {
           id?: string
           mcc_id?: string
           offline_synced_at?: string | null
+          quality_override_reason?: string | null
           quantity_litres?: number
           rate_per_litre?: number
           risk_score?: number | null
@@ -1871,6 +1874,7 @@ export type Database = {
           p_gps_lat: number
           p_gps_lng: number
           p_mcc_id: string
+          p_quality_override_reason?: string | null
           p_quantity_litres: number
           p_rate_per_litre: number
           p_risk_score: number
@@ -1905,6 +1909,7 @@ export type Database = {
           id: string
           mcc_id: string
           offline_synced_at: string | null
+          quality_override_reason: string | null
           quantity_litres: number
           rate_per_litre: number
           risk_score: number | null
