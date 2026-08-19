@@ -76,7 +76,7 @@ function AgentQueue({ mccId }: { mccId: string | undefined }) {
       const { data } = await supabase
         .from("milk_collections")
         .select(
-          "id, collected_at, session, animal_type, quantity_litres, fat_pct, snf_pct, rate_per_litre, total_amount, risk_score, status, farmers(full_name, farmer_code), agents(full_name, employee_code)",
+          "id, collected_at, session, animal_type, quantity_litres, fat_pct, snf_pct, rate_per_litre, total_amount, risk_score, status, quality_override_reason, farmers(full_name, farmer_code), agents(full_name, employee_code)",
         )
         .eq("mcc_id", mccId!)
         .eq("source", "agent")
@@ -133,6 +133,11 @@ function AgentQueue({ mccId }: { mccId: string | undefined }) {
                 {Number(row.rate_per_litre ?? 0).toFixed(2)}/L ·{" "}
                 {new Date(row.collected_at).toLocaleString()}
               </p>
+              {row.quality_override_reason && (
+                <p className="mt-1 text-xs font-medium text-amber-600">
+                  Agent continued despite alert: "{row.quality_override_reason}"
+                </p>
+              )}
             </div>
             <div className="text-right">
               <p className="font-semibold">{Number(row.quantity_litres ?? 0).toFixed(1)} L</p>
