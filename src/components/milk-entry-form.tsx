@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Printer, Save, CloudOff, MapPin, LockKeyhole, LockKeyholeOpen } from "lucide-react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  Printer,
+  Save,
+  CloudOff,
+  MapPin,
+  LockKeyhole,
+  LockKeyholeOpen,
+  ShieldAlert,
+  RotateCcw,
+  FileWarning,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -18,12 +29,14 @@ import { getCoords, haversineMeters, watchCoords, type Coords } from "@/lib/geo"
 import { enqueue, flushQueue, newClientRef, type QueuedCollection } from "@/lib/offline-queue";
 import {
   formatCurrency,
+  qualityStatus,
   ratePerLitre,
   riskScore,
   snfFromClr,
   totalAmount,
   type RateSlab,
 } from "@/lib/pricing";
+import { evaluateCollection } from "@/lib/quality";
 
 export type MilkEntryTarget = {
   farmerId: string;
@@ -104,7 +117,18 @@ function useGeofenceLock(target: MilkEntryTarget) {
   const locked = enabled && hasPin && (!withinRadius || !accuracyOk);
   const ready = !enabled || !hasPin || (withinRadius && accuracyOk);
 
-  return { enabled, hasPin, watching, coords, distance, radius, accuracyOk, locked, ready, pointName: point?.name };
+  return {
+    enabled,
+    hasPin,
+    watching,
+    coords,
+    distance,
+    radius,
+    accuracyOk,
+    locked,
+    ready,
+    pointName: point?.name,
+  };
 }
 
 export function MilkEntryForm({
@@ -126,6 +150,15 @@ export function MilkEntryForm({
   const [antibiotic, setAntibiotic] = useState("not_tested");
   const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  // PHASE 2 §"Quality entry" — a critical reading (water/antibiotic/fat/SNF
+  // over threshold) can't be saved silently. The agent must pick one of the
+  // three actions below before Save unlocks again.
+  const [qualityAction, setQualityAction] = useState<"retest" | "override" | "exception" | null>(
+    null,
+  );
+  const [overrideReason, setOverrideReason] = useState("");
+  const [exceptionReason, setExceptionReason] = useState("");
 
   const geofence = useGeofenceLock(target);
 
@@ -153,6 +186,69 @@ export function MilkEntryForm({
   );
   const amount = totalAmount(quantityLitres, rate);
   const risk = riskScore({ fatPct, snfPct, waterPct: waterPct });
+  const status = qualityStatus(risk);
+
+  // Reuses the exact same threshold checks the manager's Quality screen scans
+  // with after the fact (src/lib/quality.ts) — evaluated live here instead so
+  // the agent sees them before saving, not after. No `id` yet since nothing's
+  // saved; the function doesn't use it for severity.
+  const alerts = useMemo(
+    () =>
+      evaluateCollection(
+        {
+          id: "",
+          farmer_id: target.farmerId,
+          quantity_litres: quantityLitres,
+          fat_pct: fatPct,
+          snf_pct: snfPct,
+          water_adulteration_pct: waterPct,
+          antibiotic_test_result: antibiotic === "not_tested" ? null : antibiotic,
+          collected_at: new Date().toISOString(),
+        },
+        undefined,
+      ),
+    [target.farmerId, quantityLitres, fatPct, snfPct, waterPct, antibiotic],
+  );
+
+  // Critical blocks Save until the agent picks retest / override / exception.
+  // Changing any reading resets that choice — it applies to the values it was
+  // made against, not whatever gets typed next.
+  useEffect(() => {
+    setQualityAction(null);
+    setOverrideReason("");
+  }, [fatPct, snfPct, waterPct, antibiotic]);
+
+  const gated = status === "critical" && qualityAction === null;
+  const overrideReady = qualityAction === "override" && overrideReason.trim().length > 0;
+  // trip_exceptions.trip_id/agent_id are NOT NULL — only a field collection
+  // (agent source, on a trip) has both, so a centre walk-in gets Retest /
+  // Continue-with-reason only, not Mark-as-exception.
+  const canException =
+    target.source === "agent" && Boolean(target.tripId) && Boolean(target.agentId);
+
+  const logQualityException = useMutation({
+    mutationFn: async () => {
+      if (!canException || !target.tripId || !target.agentId) {
+        throw new Error("Exceptions can only be logged for an active field collection trip.");
+      }
+      if (!exceptionReason.trim()) throw new Error("Add a short reason for the exception.");
+      const { error } = await supabase.from("trip_exceptions").insert({
+        trip_id: target.tripId,
+        agent_id: target.agentId,
+        mcc_id: target.mccId,
+        route_point_id: target.routePointId ?? null,
+        farmer_id: target.farmerId,
+        type: "quality_issue",
+        reason: `${exceptionReason.trim()} (${alerts.map((a) => a.alert_type).join(", ")})`,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Quality exception logged — collection not recorded.");
+      onSaved?.();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   async function save() {
     if (quantityLitres <= 0) {
@@ -160,7 +256,17 @@ export function MilkEntryForm({
       return;
     }
     if (geofence.locked) {
-      toast.error(`Move closer to ${geofence.pointName ?? "the collection point"} to record this entry.`);
+      toast.error(
+        `Move closer to ${geofence.pointName ?? "the collection point"} to record this entry.`,
+      );
+      return;
+    }
+    if (status === "critical" && qualityAction !== "override") {
+      toast.error("Resolve the quality alert before saving.");
+      return;
+    }
+    if (qualityAction === "override" && !overrideReady) {
+      toast.error("Add a reason to continue with this reading.");
       return;
     }
     setSaving(true);
@@ -191,6 +297,7 @@ export function MilkEntryForm({
       risk_score: risk,
       // Field entries wait for manager verification; centre walk-ins post directly.
       status: target.source === "agent" ? "pending" : "verified",
+      quality_override_reason: qualityAction === "override" ? overrideReason.trim() : null,
       signature_url: signature,
       gps_lat: coords.lat ?? geofence.coords.lat,
       gps_lng: coords.lng ?? geofence.coords.lng,
@@ -216,6 +323,8 @@ export function MilkEntryForm({
     setSnf("");
     setWater("");
     setSignature(null);
+    setQualityAction(null);
+    setOverrideReason("");
     onSaved?.();
   }
 
@@ -246,7 +355,9 @@ Time   : ${new Date().toLocaleString()}
       {geofence.enabled && (
         <div
           className={`surface-card flex items-center gap-3 p-4 ${
-            geofence.locked ? "border-destructive/40 bg-destructive/5" : "border-emerald-500/40 bg-emerald-500/5"
+            geofence.locked
+              ? "border-destructive/40 bg-destructive/5"
+              : "border-emerald-500/40 bg-emerald-500/5"
           }`}
         >
           {geofence.locked ? (
@@ -322,11 +433,23 @@ Time   : ${new Date().toLocaleString()}
       <div className="grid grid-cols-3 gap-3">
         <div>
           <Label htmlFor="fat">Fat %</Label>
-          <Input id="fat" inputMode="decimal" className="mt-1 h-12" value={fat} onChange={(e) => setFat(e.target.value)} />
+          <Input
+            id="fat"
+            inputMode="decimal"
+            className="mt-1 h-12"
+            value={fat}
+            onChange={(e) => setFat(e.target.value)}
+          />
         </div>
         <div>
           <Label htmlFor="clr">CLR</Label>
-          <Input id="clr" inputMode="decimal" className="mt-1 h-12" value={clr} onChange={(e) => setClr(e.target.value)} />
+          <Input
+            id="clr"
+            inputMode="decimal"
+            className="mt-1 h-12"
+            value={clr}
+            onChange={(e) => setClr(e.target.value)}
+          />
         </div>
         <div>
           <Label htmlFor="snf">SNF %</Label>
@@ -346,15 +469,33 @@ Time   : ${new Date().toLocaleString()}
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
             <Label htmlFor="temp">Temperature °C</Label>
-            <Input id="temp" inputMode="decimal" className="mt-1 h-12" value={temperature} onChange={(e) => setTemperature(e.target.value)} />
+            <Input
+              id="temp"
+              inputMode="decimal"
+              className="mt-1 h-12"
+              value={temperature}
+              onChange={(e) => setTemperature(e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="acid">Acidity</Label>
-            <Input id="acid" inputMode="decimal" className="mt-1 h-12" value={acidity} onChange={(e) => setAcidity(e.target.value)} />
+            <Input
+              id="acid"
+              inputMode="decimal"
+              className="mt-1 h-12"
+              value={acidity}
+              onChange={(e) => setAcidity(e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="water">Water %</Label>
-            <Input id="water" inputMode="decimal" className="mt-1 h-12" value={water} onChange={(e) => setWater(e.target.value)} />
+            <Input
+              id="water"
+              inputMode="decimal"
+              className="mt-1 h-12"
+              value={water}
+              onChange={(e) => setWater(e.target.value)}
+            />
           </div>
           <div>
             <Label htmlFor="abx">Antibiotic</Label>
@@ -372,26 +513,157 @@ Time   : ${new Date().toLocaleString()}
         </div>
       </details>
 
-      <div className="surface-card flex items-center justify-between p-4">
-        <div>
+      {/* Confirmation summary — farmer / quantity / quality / rate / value, the
+          same numbers that get saved, visible before Save is pressed. */}
+      <div className="surface-card space-y-2 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-sm font-medium">{target.farmerName}</p>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              status === "critical"
+                ? "bg-destructive/10 text-destructive"
+                : status === "warning"
+                  ? "bg-amber-500/10 text-amber-600"
+                  : "bg-emerald-500/10 text-emerald-600"
+            }`}
+          >
+            {status === "critical"
+              ? "Requires attention"
+              : status === "warning"
+                ? "Warning"
+                : "Normal"}
+          </span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {quantityLitres || 0} L · Fat {fatPct ?? "—"}% · SNF {snfPct ?? "—"}%
+        </p>
+        <div className="flex items-center justify-between border-t border-border pt-2">
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Rate {formatCurrency(rate)}/L
           </p>
           <p className="text-2xl font-bold tracking-tight">{formatCurrency(amount)}</p>
         </div>
-        {risk >= 40 && (
-          <span className="rounded-full bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive">
-            Suspect sample
-          </span>
-        )}
       </div>
+
+      {/* PHASE 2 — non-blocking: visible but Save still works. */}
+      {status === "warning" && (
+        <div className="surface-card space-y-1 border-amber-500/40 bg-amber-500/5 p-3">
+          {alerts.map((a) => (
+            <p key={a.alert_type} className="flex items-start gap-2 text-xs text-amber-700">
+              <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {a.message}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {/* PHASE 2 — blocking: Save is disabled until one of these is chosen. */}
+      {status === "critical" && (
+        <div className="surface-card space-y-3 border-destructive/40 bg-destructive/5 p-4">
+          <div className="space-y-1">
+            {alerts.map((a) => (
+              <p key={a.alert_type} className="flex items-start gap-2 text-xs text-destructive">
+                <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {a.message}
+              </p>
+            ))}
+          </div>
+
+          {qualityAction === null && (
+            <div className={`grid gap-2 ${canException ? "grid-cols-3" : "grid-cols-2"}`}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-11 flex-col gap-1 text-xs"
+                onClick={() => {
+                  setFat("");
+                  setClr("");
+                  setSnf("");
+                  setWater("");
+                  toast("Re-enter the readings for a fresh test.");
+                }}
+              >
+                <RotateCcw className="h-4 w-4" /> Retest
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-11 flex-col gap-1 text-xs"
+                onClick={() => setQualityAction("override")}
+              >
+                <ShieldAlert className="h-4 w-4" /> Continue with reason
+              </Button>
+              {canException && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-11 flex-col gap-1 text-xs"
+                  onClick={() => setQualityAction("exception")}
+                >
+                  <FileWarning className="h-4 w-4" /> Mark as exception
+                </Button>
+              )}
+            </div>
+          )}
+
+          {qualityAction === "override" && (
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Why continue despite this reading? (required — the manager sees this at verification)"
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setQualityAction(null)}>
+                  Back
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {qualityAction === "exception" && (
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Reason for the exception (e.g. farmer disputes the reading)"
+                value={exceptionReason}
+                onChange={(e) => setExceptionReason(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="ghost" onClick={() => setQualityAction(null)}>
+                  Back
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={logQualityException.isPending}
+                  onClick={() => logQualityException.mutate()}
+                >
+                  Log exception — don't save collection
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <SignaturePad onChange={setSignature} />
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <Button size="lg" className="h-14 text-base" onClick={save} disabled={saving || geofence.locked}>
+        <Button
+          size="lg"
+          className="h-14 text-base"
+          onClick={save}
+          disabled={saving || geofence.locked || gated}
+        >
           <Save className="h-5 w-5" />
-          {saving ? "Saving…" : geofence.locked ? "Move closer to collect" : "Save entry"}
+          {saving
+            ? "Saving…"
+            : geofence.locked
+              ? "Move closer to collect"
+              : gated
+                ? "Resolve quality alert to save"
+                : "Save entry"}
         </Button>
         <Button size="lg" variant="outline" className="h-14 text-base" onClick={printReceipt}>
           <Printer className="h-5 w-5" /> Print receipt
