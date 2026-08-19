@@ -38,6 +38,7 @@ export type QueuedCollection = {
   total_amount: number;
   risk_score: number | null;
   status: string;
+  quality_override_reason: string | null;
   signature_url: string | null;
   gps_lat: number | null;
   gps_lng: number | null;
@@ -120,6 +121,7 @@ export async function flushQueue(): Promise<FlushResult> {
         p_rate_per_litre: item.rate_per_litre,
         p_total_amount: item.total_amount,
         p_risk_score: item.risk_score,
+        p_quality_override_reason: item.quality_override_reason,
         p_signature_url: item.signature_url,
         p_gps_lat: item.gps_lat,
         p_gps_lng: item.gps_lng,
