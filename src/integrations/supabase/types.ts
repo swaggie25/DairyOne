@@ -504,6 +504,7 @@ export type Database = {
           created_at: string
           default_geofence_radius_m: number
           district: string | null
+          handover_variance_tolerance_litres: number
           id: string
           lat: number | null
           lng: number | null
@@ -519,6 +520,7 @@ export type Database = {
           created_at?: string
           default_geofence_radius_m?: number
           district?: string | null
+          handover_variance_tolerance_litres?: number
           id?: string
           lat?: number | null
           lng?: number | null
@@ -534,6 +536,7 @@ export type Database = {
           created_at?: string
           default_geofence_radius_m?: number
           district?: string | null
+          handover_variance_tolerance_litres?: number
           id?: string
           lat?: number | null
           lng?: number | null
@@ -544,6 +547,97 @@ export type Database = {
           village?: string | null
         }
         Relationships: []
+      }
+      mcc_handovers: {
+        Row: {
+          agent_id: string
+          created_at: string
+          created_by: string | null
+          declared_collection_count: number
+          declared_quantity_litres: number
+          id: string
+          mcc_id: string
+          receipt_notes: string | null
+          received_at: string | null
+          received_by: string | null
+          received_quantity_litres: number | null
+          session: string
+          status: string
+          trip_date: string
+          trip_id: string
+          updated_at: string
+          variance_acknowledged_at: string | null
+          variance_acknowledged_by: string | null
+          variance_litres: number | null
+          variance_reason: string | null
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          created_by?: string | null
+          declared_collection_count?: number
+          declared_quantity_litres: number
+          id?: string
+          mcc_id: string
+          receipt_notes?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          received_quantity_litres?: number | null
+          session?: string
+          status?: string
+          trip_date: string
+          trip_id: string
+          updated_at?: string
+          variance_acknowledged_at?: string | null
+          variance_acknowledged_by?: string | null
+          variance_litres?: number | null
+          variance_reason?: string | null
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          created_by?: string | null
+          declared_collection_count?: number
+          declared_quantity_litres?: number
+          id?: string
+          mcc_id?: string
+          receipt_notes?: string | null
+          received_at?: string | null
+          received_by?: string | null
+          received_quantity_litres?: number | null
+          session?: string
+          status?: string
+          trip_date?: string
+          trip_id?: string
+          updated_at?: string
+          variance_acknowledged_at?: string | null
+          variance_acknowledged_by?: string | null
+          variance_litres?: number | null
+          variance_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mcc_handovers_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcc_handovers_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mcc_handovers_trip_id_fkey"
+            columns: ["trip_id"]
+            isOneToOne: true
+            referencedRelation: "route_trips"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       milk_collections: {
         Row: {
@@ -1848,6 +1942,56 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      acknowledge_handover_variance: {
+        Args: { p_handover_id: string; p_reason: string }
+        Returns: {
+          agent_id: string
+          created_at: string
+          created_by: string | null
+          declared_collection_count: number
+          declared_quantity_litres: number
+          id: string
+          mcc_id: string
+          receipt_notes: string | null
+          received_at: string | null
+          received_by: string | null
+          received_quantity_litres: number | null
+          session: string
+          status: string
+          trip_date: string
+          trip_id: string
+          updated_at: string
+          variance_acknowledged_at: string | null
+          variance_acknowledged_by: string | null
+          variance_litres: number | null
+          variance_reason: string | null
+        }
+      }
+      create_mcc_handover: {
+        Args: { p_trip_id: string }
+        Returns: {
+          agent_id: string
+          created_at: string
+          created_by: string | null
+          declared_collection_count: number
+          declared_quantity_litres: number
+          id: string
+          mcc_id: string
+          receipt_notes: string | null
+          received_at: string | null
+          received_by: string | null
+          received_quantity_litres: number | null
+          session: string
+          status: string
+          trip_date: string
+          trip_id: string
+          updated_at: string
+          variance_acknowledged_at: string | null
+          variance_acknowledged_by: string | null
+          variance_litres: number | null
+          variance_reason: string | null
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1860,6 +2004,35 @@ export type Database = {
         Returns: number
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      record_mcc_handover_receipt: {
+        Args: {
+          p_handover_id: string
+          p_notes?: string
+          p_received_quantity_litres: number
+        }
+        Returns: {
+          agent_id: string
+          created_at: string
+          created_by: string | null
+          declared_collection_count: number
+          declared_quantity_litres: number
+          id: string
+          mcc_id: string
+          receipt_notes: string | null
+          received_at: string | null
+          received_by: string | null
+          received_quantity_litres: number | null
+          session: string
+          status: string
+          trip_date: string
+          trip_id: string
+          updated_at: string
+          variance_acknowledged_at: string | null
+          variance_acknowledged_by: string | null
+          variance_litres: number | null
+          variance_reason: string | null
+        }
+      }
       record_milk_collection: {
         Args: {
           p_acidity: number
@@ -1874,7 +2047,7 @@ export type Database = {
           p_gps_lat: number
           p_gps_lng: number
           p_mcc_id: string
-          p_quality_override_reason?: string | null
+          p_quality_override_reason?: string
           p_quantity_litres: number
           p_rate_per_litre: number
           p_risk_score: number
@@ -1928,12 +2101,6 @@ export type Database = {
           verified_by: string | null
           water_adulteration_flag: boolean
           water_adulteration_pct: number | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "milk_collections"
-          isOneToOne: true
-          isSetofReturn: false
         }
       }
       save_marked_route: {
