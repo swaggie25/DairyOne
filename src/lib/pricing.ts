@@ -85,6 +85,15 @@ export function riskScore(input: {
   return Math.min(100, score);
 }
 
+/** PHASE 2 — Quality state shown/gated in the entry form. Same 40-point line
+ * `evaluateCollection` (src/lib/quality.ts) uses for "critical", so the field
+ * gate and the manager's alert scan never disagree. */
+export function qualityStatus(score: number): "normal" | "warning" | "critical" {
+  if (score >= 40) return "critical";
+  if (score > 0) return "warning";
+  return "normal";
+}
+
 export function formatCurrency(value: number): string {
   return `₹${value.toFixed(2)}`;
 }
