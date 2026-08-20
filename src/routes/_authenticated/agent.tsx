@@ -9,6 +9,7 @@ import {
   RefreshCw,
   MapPinned,
   AlertTriangle,
+  LocateFixed,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgentContext } from "@/hooks/useAgentContext";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
+import { useTrackingSession, TRACKING_FAILURE_MESSAGES } from "@/hooks/useTrackingSession";
 import { getCoords } from "@/lib/geo";
 import { formatCurrency } from "@/lib/pricing";
 
@@ -51,6 +53,7 @@ function AgentHome() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { pending, online, flush } = useOfflineQueue();
+  const trackingSession = useTrackingSession();
 
   const { data: attendance } = useQuery({
     queryKey: ["attendance-today", agent?.agentId],
@@ -167,16 +170,37 @@ function AgentHome() {
           })
           .eq("id", attendance.id);
         if (error) throw error;
+        // Architecture only for now (Phase 2 scope): mark the tracking
+        // session for this shift as done. Full "stop tracking" behaviour
+        // (e.g. tearing down an in-flight watchPosition on trip.tsx) is
+        // handled where the watch actually lives, not here.
+        await trackingSession.completeSession(attendance.id, coords);
         return "out" as const;
       }
-      const { error } = await supabase.from("attendance").insert({
-        agent_id: agent!.agentId,
-        mcc_id: agent!.mccId,
-        route_id: agent!.routeId,
-        punch_in_lat: coords.lat,
-        punch_in_lng: coords.lng,
-      });
+      const { data, error } = await supabase
+        .from("attendance")
+        .insert({
+          agent_id: agent!.agentId,
+          mcc_id: agent!.mccId,
+          route_id: agent!.routeId,
+          punch_in_lat: coords.lat,
+          punch_in_lng: coords.lng,
+        })
+        .select("id")
+        .single();
       if (error) throw error;
+
+      // Punch In has already succeeded at this point — tracking init below
+      // must never block or hide that. Any failure is surfaced separately
+      // via trackingSession.status/failureReason (see the banner below),
+      // never silently swallowed.
+      await trackingSession.initSession({
+        attendanceId: data.id,
+        agentId: agent!.agentId,
+        mccId: agent!.mccId,
+        routeId: agent!.routeId,
+        shift: agent!.shift,
+      });
       return "in" as const;
     },
     onSuccess: async (kind) => {
@@ -275,6 +299,19 @@ function AgentHome() {
           </p>
         )}
       </div>
+
+      {trackingSession.status === "DEGRADED" && trackingSession.failureReason && (
+        <div className="surface-card mt-5 flex items-center gap-3 border-destructive/40 bg-destructive/5 p-4">
+          <LocateFixed className="h-5 w-5 text-destructive" />
+          <p className="flex-1 text-sm text-muted-foreground">
+            Punched in, but live tracking isn't active.{" "}
+            {TRACKING_FAILURE_MESSAGES[trackingSession.failureReason]}
+          </p>
+          <Button size="sm" variant="ghost" onClick={() => void trackingSession.retry()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <div className="mt-5 grid grid-cols-3 gap-3">
         <StatCard label="Litres today" value={(totals?.litres ?? 0).toFixed(1)} />
