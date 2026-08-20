@@ -103,12 +103,6 @@ function TripScreen() {
 
   const [scanOpen, setScanOpen] = useState(false);
 
-  // PHASE 3 — Route completion summary shown before the Agent proceeds to
-  // the MCC, so nothing gets buried: assigned/completed/missed farmers,
-  // litres collected, open exceptions, in one screen before the point of
-  // no return.
-  const [showCompleteSummary, setShowCompleteSummary] = useState(false);
-
   // PHASE 1 §5 — Exception Basics. `exceptionTarget` is either a farmer
   // (unavailable/skipped) or null with routePointId set (route issue/other).
   const [exceptionTarget, setExceptionTarget] = useState<{
@@ -118,6 +112,11 @@ function TripScreen() {
   } | null>(null);
   const [exceptionType, setExceptionType] = useState("farmer_unavailable");
   const [exceptionReason, setExceptionReason] = useState("");
+
+  // PHASE 3 — Route Completion Summary shown before the Agent commits to
+  // closing the trip, so "Proceed to MCC" is a deliberate step with the
+  // day's numbers in front of them, not a silent status flip.
+  const [completionOpen, setCompletionOpen] = useState(false);
 
   /*
    * ACTIVE TRIP
@@ -562,17 +561,12 @@ function TripScreen() {
   });
 
   /*
-   * END TRIP → MCC HANDOVER
-   *
-   * PHASE 3 — closing the route now also declares an MCC handover: the
-   * Agent's operational workflow ends at the MCC, not with a bare status
-   * flip. create_mcc_handover is idempotent (keyed on trip_id) so a retried
-   * tap after a network drop can never create two handovers for one trip.
+   * END TRIP
    */
 
-  const endTrip = useMutation({
+  const proceedToMcc = useMutation({
     mutationFn: async () => {
-      if (!trip || !agent) return null;
+      if (!trip || !agent) return;
 
       const coords = await getCoords();
 
@@ -599,27 +593,29 @@ function TripScreen() {
 
       if (error) throw error;
 
-      const { data: handover, error: handoverError } = await supabase.rpc(
-        "create_mcc_handover",
-        { p_trip_id: trip.id },
-      );
-      if (handoverError) throw handoverError;
+      // PHASE 3 — declare the handover now that the route is closed. This is
+      // idempotent server-side (create_mcc_handover returns the existing row
+      // on retry), so a flaky network here can never create two handovers
+      // for the same trip.
+      const { error: handoverError } = await supabase.rpc("create_mcc_handover", {
+        p_trip_id: trip.id,
+      });
 
-      return handover;
+      if (handoverError) throw handoverError;
     },
 
-    onSuccess: async (handover) => {
-      toast.success("Route closed. Handover declared at the centre.");
-
-      setShowCompleteSummary(false);
+    onSuccess: async () => {
+      toast.success("Trip closed. Handover declared at the centre.");
 
       await queryClient.invalidateQueries({
         queryKey: ["active-trip"],
       });
 
+      setCompletionOpen(false);
+
       navigate({
-        to: handover ? "/handover/$tripId" : "/agent",
-        params: handover ? { tripId: handover.trip_id } : undefined,
+        to: "/handover",
+        search: { trip: trip!.id },
       });
     },
 
@@ -1019,69 +1015,11 @@ function TripScreen() {
         size="lg"
         variant="outline"
         className="mt-6 h-14 w-full text-base"
-        onClick={() => setShowCompleteSummary(true)}
-        disabled={endTrip.isPending}
+        onClick={() => setCompletionOpen(true)}
       >
         <Home className="h-5 w-5" />
         Return to MCC & close trip
       </Button>
-
-      {/* PHASE 3 — ROUTE COMPLETION SUMMARY, shown before declaring the MCC handover */}
-
-      <Dialog open={showCompleteSummary} onOpenChange={setShowCompleteSummary}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Route completion summary</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="surface-card p-3">
-                <p className="text-xs text-muted-foreground">Farmers assigned</p>
-                <p className="text-xl font-bold">
-                  {new Set(allFarmers.map((f) => f.id)).size}
-                </p>
-              </div>
-              <div className="surface-card p-3">
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="text-xl font-bold">{collectedFarmers.size}</p>
-              </div>
-              <div className="surface-card p-3">
-                <p className="text-xs text-muted-foreground">Missed</p>
-                <p className="text-xl font-bold">{exceptedFarmers.size}</p>
-              </div>
-              <div className="surface-card p-3">
-                <p className="text-xs text-muted-foreground">Milk collected</p>
-                <p className="text-xl font-bold">{totalLitres.toFixed(1)} L</p>
-              </div>
-            </div>
-
-            {openExceptionCount > 0 && (
-              <div className="surface-card flex items-center gap-2 border-accent/40 bg-accent/5 p-3">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-accent" />
-                <p className="text-sm text-muted-foreground">
-                  {openExceptionCount} open exception{openExceptionCount === 1 ? "" : "s"} on
-                  this route.
-                </p>
-              </div>
-            )}
-
-            <p className="text-xs text-muted-foreground">
-              This declares your collected total at the MCC. The centre will confirm the
-              received quantity separately.
-            </p>
-
-            <Button
-              size="lg"
-              className="h-14 w-full text-base"
-              onClick={() => endTrip.mutate()}
-              disabled={endTrip.isPending}
-            >
-              {endTrip.isPending ? "Declaring…" : "Proceed to MCC"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* QR SCANNER */}
 
@@ -1213,6 +1151,59 @@ function TripScreen() {
               onClick={() => logException.mutate()}
             >
               Log exception
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* PHASE 3 — ROUTE COMPLETION SUMMARY, shown before the Agent commits
+          to closing the trip and declaring the MCC handover. */}
+      <Dialog open={completionOpen} onOpenChange={setCompletionOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Route completion summary</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="surface-card p-3 text-center">
+                <p className="text-2xl font-semibold">{allFarmers.length}</p>
+                <p className="text-xs text-muted-foreground">Farmers assigned</p>
+              </div>
+              <div className="surface-card p-3 text-center">
+                <p className="text-2xl font-semibold">{collectedFarmers.size}</p>
+                <p className="text-xs text-muted-foreground">Completed</p>
+              </div>
+              <div className="surface-card p-3 text-center">
+                <p className="text-2xl font-semibold">{exceptedFarmers.size}</p>
+                <p className="text-xs text-muted-foreground">Missed / unavailable</p>
+              </div>
+              <div className="surface-card p-3 text-center">
+                <p className="text-2xl font-semibold">{totalLitres.toFixed(1)} L</p>
+                <p className="text-xs text-muted-foreground">Total collected</p>
+              </div>
+            </div>
+
+            {openExceptionCount > 0 && (
+              <div className="surface-card flex items-center gap-2 border-accent/40 bg-accent/5 p-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-accent" />
+                {openExceptionCount} open exception{openExceptionCount === 1 ? "" : "s"} on this
+                route.
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Closing the trip declares this total at the centre. The MCC operator will
+              independently record what they receive.
+            </p>
+
+            <Button
+              size="lg"
+              className="h-12 w-full"
+              disabled={proceedToMcc.isPending}
+              onClick={() => proceedToMcc.mutate()}
+            >
+              Proceed to MCC
             </Button>
           </div>
         </DialogContent>
