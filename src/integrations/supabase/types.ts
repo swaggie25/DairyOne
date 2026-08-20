@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.15"
   }
@@ -49,20 +47,8 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "agents_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agents_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "agents_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "agents_profile_id_fkey"; columns: ["profile_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
       attendance: {
@@ -106,27 +92,9 @@ export type Database = {
           route_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "attendance_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attendance_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attendance_route_id_fkey"
-            columns: ["route_id"]
-            isOneToOne: false
-            referencedRelation: "routes"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "attendance_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "attendance_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "attendance_route_id_fkey"; columns: ["route_id"]; isOneToOne: false; referencedRelation: "routes"; referencedColumns: ["id"] },
         ]
       }
       buyers: {
@@ -167,13 +135,7 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "buyers_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "buyers_profile_id_fkey"; columns: ["profile_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
       complaints: {
@@ -220,20 +182,8 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "complaints_farmer_id_fkey"
-            columns: ["farmer_id"]
-            isOneToOne: false
-            referencedRelation: "farmers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "complaints_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "complaints_farmer_id_fkey"; columns: ["farmer_id"]; isOneToOne: false; referencedRelation: "farmers"; referencedColumns: ["id"] },
+          { foreignKeyName: "complaints_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
       farmer_animals: {
@@ -262,13 +212,7 @@ export type Database = {
           id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "farmer_animals_farmer_id_fkey"
-            columns: ["farmer_id"]
-            isOneToOne: false
-            referencedRelation: "farmers"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "farmer_animals_farmer_id_fkey"; columns: ["farmer_id"]; isOneToOne: false; referencedRelation: "farmers"; referencedColumns: ["id"] },
         ]
       }
       farmers: {
@@ -321,20 +265,8 @@ export type Database = {
           village?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "farmers_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "farmers_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "farmers_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "farmers_profile_id_fkey"; columns: ["profile_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
         ]
       }
       forecasts: {
@@ -417,34 +349,10 @@ export type Database = {
           trip_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "gps_pings_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gps_pings_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gps_pings_route_point_id_fkey"
-            columns: ["route_point_id"]
-            isOneToOne: false
-            referencedRelation: "route_points"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "gps_pings_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "route_trips"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "gps_pings_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "gps_pings_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "gps_pings_route_point_id_fkey"; columns: ["route_point_id"]; isOneToOne: false; referencedRelation: "route_points"; referencedColumns: ["id"] },
+          { foreignKeyName: "gps_pings_trip_id_fkey"; columns: ["trip_id"]; isOneToOne: false; referencedRelation: "route_trips"; referencedColumns: ["id"] },
         ]
       }
       ledger_entries: {
@@ -488,13 +396,7 @@ export type Database = {
           ref_type?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "ledger_entries_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "ledger_entries_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
       mcc_centres: {
@@ -616,27 +518,9 @@ export type Database = {
           variance_reason?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "mcc_handovers_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "mcc_handovers_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "mcc_handovers_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: true
-            referencedRelation: "route_trips"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "mcc_handovers_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "mcc_handovers_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "mcc_handovers_trip_id_fkey"; columns: ["trip_id"]; isOneToOne: true; referencedRelation: "route_trips"; referencedColumns: ["id"] },
         ]
       }
       milk_collections: {
@@ -761,41 +645,11 @@ export type Database = {
           water_adulteration_pct?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "milk_collections_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "milk_collections_farmer_id_fkey"
-            columns: ["farmer_id"]
-            isOneToOne: false
-            referencedRelation: "farmers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "milk_collections_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "milk_collections_route_point_id_fkey"
-            columns: ["route_point_id"]
-            isOneToOne: false
-            referencedRelation: "route_points"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "milk_collections_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "route_trips"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "milk_collections_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "milk_collections_farmer_id_fkey"; columns: ["farmer_id"]; isOneToOne: false; referencedRelation: "farmers"; referencedColumns: ["id"] },
+          { foreignKeyName: "milk_collections_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "milk_collections_route_point_id_fkey"; columns: ["route_point_id"]; isOneToOne: false; referencedRelation: "route_points"; referencedColumns: ["id"] },
+          { foreignKeyName: "milk_collections_trip_id_fkey"; columns: ["trip_id"]; isOneToOne: false; referencedRelation: "route_trips"; referencedColumns: ["id"] },
         ]
       }
       otp_codes: {
@@ -887,27 +741,9 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "payments_farmer_id_fkey"
-            columns: ["farmer_id"]
-            isOneToOne: false
-            referencedRelation: "farmers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_settlement_run_id_fkey"
-            columns: ["settlement_run_id"]
-            isOneToOne: false
-            referencedRelation: "settlement_runs"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "payments_farmer_id_fkey"; columns: ["farmer_id"]; isOneToOne: false; referencedRelation: "farmers"; referencedColumns: ["id"] },
+          { foreignKeyName: "payments_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "payments_settlement_run_id_fkey"; columns: ["settlement_run_id"]; isOneToOne: false; referencedRelation: "settlement_runs"; referencedColumns: ["id"] },
         ]
       }
       profiles: {
@@ -975,13 +811,7 @@ export type Database = {
           mcc_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "qr_cards_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "qr_cards_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
       quality_alerts: {
@@ -1028,27 +858,9 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "quality_alerts_collection_id_fkey"
-            columns: ["collection_id"]
-            isOneToOne: false
-            referencedRelation: "milk_collections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quality_alerts_farmer_id_fkey"
-            columns: ["farmer_id"]
-            isOneToOne: false
-            referencedRelation: "farmers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quality_alerts_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "quality_alerts_collection_id_fkey"; columns: ["collection_id"]; isOneToOne: false; referencedRelation: "milk_collections"; referencedColumns: ["id"] },
+          { foreignKeyName: "quality_alerts_farmer_id_fkey"; columns: ["farmer_id"]; isOneToOne: false; referencedRelation: "farmers"; referencedColumns: ["id"] },
+          { foreignKeyName: "quality_alerts_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
       quality_tests: {
@@ -1095,13 +907,7 @@ export type Database = {
           water_adulteration_pct?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "quality_tests_collection_id_fkey"
-            columns: ["collection_id"]
-            isOneToOne: false
-            referencedRelation: "milk_collections"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "quality_tests_collection_id_fkey"; columns: ["collection_id"]; isOneToOne: false; referencedRelation: "milk_collections"; referencedColumns: ["id"] },
         ]
       }
       rate_slabs: {
@@ -1142,13 +948,7 @@ export type Database = {
           rate_per_litre?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "rate_slabs_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "rate_slabs_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
       route_assignments: {
@@ -1198,27 +998,9 @@ export type Database = {
           vehicle_type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "route_assignments_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_assignments_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_assignments_route_id_fkey"
-            columns: ["route_id"]
-            isOneToOne: false
-            referencedRelation: "routes"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "route_assignments_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_assignments_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_assignments_route_id_fkey"; columns: ["route_id"]; isOneToOne: false; referencedRelation: "routes"; referencedColumns: ["id"] },
         ]
       }
       route_change_requests: {
@@ -1286,41 +1068,11 @@ export type Database = {
           voice_transcription?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "route_change_requests_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_change_requests_deviation_id_fkey"
-            columns: ["deviation_id"]
-            isOneToOne: false
-            referencedRelation: "route_deviations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_change_requests_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_change_requests_original_route_id_fkey"
-            columns: ["original_route_id"]
-            isOneToOne: false
-            referencedRelation: "routes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_change_requests_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "route_trips"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "route_change_requests_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_change_requests_deviation_id_fkey"; columns: ["deviation_id"]; isOneToOne: false; referencedRelation: "route_deviations"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_change_requests_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_change_requests_original_route_id_fkey"; columns: ["original_route_id"]; isOneToOne: false; referencedRelation: "routes"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_change_requests_trip_id_fkey"; columns: ["trip_id"]; isOneToOne: false; referencedRelation: "route_trips"; referencedColumns: ["id"] },
         ]
       }
       route_deviations: {
@@ -1379,27 +1131,9 @@ export type Database = {
           voice_transcription?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "route_deviations_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_deviations_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_deviations_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "route_trips"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "route_deviations_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_deviations_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_deviations_trip_id_fkey"; columns: ["trip_id"]; isOneToOne: false; referencedRelation: "route_trips"; referencedColumns: ["id"] },
         ]
       }
       route_point_farmers: {
@@ -1422,20 +1156,8 @@ export type Database = {
           sequence?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "route_point_farmers_farmer_id_fkey"
-            columns: ["farmer_id"]
-            isOneToOne: false
-            referencedRelation: "farmers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_point_farmers_route_point_id_fkey"
-            columns: ["route_point_id"]
-            isOneToOne: false
-            referencedRelation: "route_points"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "route_point_farmers_farmer_id_fkey"; columns: ["farmer_id"]; isOneToOne: false; referencedRelation: "farmers"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_point_farmers_route_point_id_fkey"; columns: ["route_point_id"]; isOneToOne: false; referencedRelation: "route_points"; referencedColumns: ["id"] },
         ]
       }
       route_points: {
@@ -1470,13 +1192,7 @@ export type Database = {
           sequence?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "route_points_route_id_fkey"
-            columns: ["route_id"]
-            isOneToOne: false
-            referencedRelation: "routes"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "route_points_route_id_fkey"; columns: ["route_id"]; isOneToOne: false; referencedRelation: "routes"; referencedColumns: ["id"] },
         ]
       }
       route_trips: {
@@ -1544,41 +1260,11 @@ export type Database = {
           vehicle_type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "route_trips_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_trips_current_route_point_id_fkey"
-            columns: ["current_route_point_id"]
-            isOneToOne: false
-            referencedRelation: "route_points"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_trips_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_trips_route_assignment_id_fkey"
-            columns: ["route_assignment_id"]
-            isOneToOne: false
-            referencedRelation: "route_assignments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "route_trips_route_id_fkey"
-            columns: ["route_id"]
-            isOneToOne: false
-            referencedRelation: "routes"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "route_trips_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_trips_current_route_point_id_fkey"; columns: ["current_route_point_id"]; isOneToOne: false; referencedRelation: "route_points"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_trips_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_trips_route_assignment_id_fkey"; columns: ["route_assignment_id"]; isOneToOne: false; referencedRelation: "route_assignments"; referencedColumns: ["id"] },
+          { foreignKeyName: "route_trips_route_id_fkey"; columns: ["route_id"]; isOneToOne: false; referencedRelation: "routes"; referencedColumns: ["id"] },
         ]
       }
       routes: {
@@ -1634,27 +1320,9 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "routes_assigned_agent_id_fkey"
-            columns: ["assigned_agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "routes_created_from_trip_id_fkey"
-            columns: ["created_from_trip_id"]
-            isOneToOne: false
-            referencedRelation: "route_trips"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "routes_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "routes_assigned_agent_id_fkey"; columns: ["assigned_agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "routes_created_from_trip_id_fkey"; columns: ["created_from_trip_id"]; isOneToOne: false; referencedRelation: "route_trips"; referencedColumns: ["id"] },
+          { foreignKeyName: "routes_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
       settlement_runs: {
@@ -1701,13 +1369,7 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "settlement_runs_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "settlement_runs_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
       transfer_collections: {
@@ -1730,20 +1392,8 @@ export type Database = {
           transfer_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "transfer_collections_collection_id_fkey"
-            columns: ["collection_id"]
-            isOneToOne: true
-            referencedRelation: "milk_collections"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transfer_collections_transfer_id_fkey"
-            columns: ["transfer_id"]
-            isOneToOne: false
-            referencedRelation: "transfers"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "transfer_collections_collection_id_fkey"; columns: ["collection_id"]; isOneToOne: true; referencedRelation: "milk_collections"; referencedColumns: ["id"] },
+          { foreignKeyName: "transfer_collections_transfer_id_fkey"; columns: ["transfer_id"]; isOneToOne: false; referencedRelation: "transfers"; referencedColumns: ["id"] },
         ]
       }
       transfers: {
@@ -1805,20 +1455,8 @@ export type Database = {
           vehicle_no?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "transfers_buyer_id_fkey"
-            columns: ["buyer_id"]
-            isOneToOne: false
-            referencedRelation: "buyers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transfers_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "transfers_buyer_id_fkey"; columns: ["buyer_id"]; isOneToOne: false; referencedRelation: "buyers"; referencedColumns: ["id"] },
+          { foreignKeyName: "transfers_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
       trip_exceptions: {
@@ -1868,41 +1506,11 @@ export type Database = {
           type?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "trip_exceptions_agent_id_fkey"
-            columns: ["agent_id"]
-            isOneToOne: false
-            referencedRelation: "agents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trip_exceptions_farmer_id_fkey"
-            columns: ["farmer_id"]
-            isOneToOne: false
-            referencedRelation: "farmers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trip_exceptions_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trip_exceptions_route_point_id_fkey"
-            columns: ["route_point_id"]
-            isOneToOne: false
-            referencedRelation: "route_points"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "trip_exceptions_trip_id_fkey"
-            columns: ["trip_id"]
-            isOneToOne: false
-            referencedRelation: "route_trips"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "trip_exceptions_agent_id_fkey"; columns: ["agent_id"]; isOneToOne: false; referencedRelation: "agents"; referencedColumns: ["id"] },
+          { foreignKeyName: "trip_exceptions_farmer_id_fkey"; columns: ["farmer_id"]; isOneToOne: false; referencedRelation: "farmers"; referencedColumns: ["id"] },
+          { foreignKeyName: "trip_exceptions_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
+          { foreignKeyName: "trip_exceptions_route_point_id_fkey"; columns: ["route_point_id"]; isOneToOne: false; referencedRelation: "route_points"; referencedColumns: ["id"] },
+          { foreignKeyName: "trip_exceptions_trip_id_fkey"; columns: ["trip_id"]; isOneToOne: false; referencedRelation: "route_trips"; referencedColumns: ["id"] },
         ]
       }
       user_roles: {
@@ -1928,13 +1536,7 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "user_roles_mcc_id_fkey"
-            columns: ["mcc_id"]
-            isOneToOne: false
-            referencedRelation: "mcc_centres"
-            referencedColumns: ["id"]
-          },
+          { foreignKeyName: "user_roles_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
         ]
       }
     }
@@ -1966,6 +1568,7 @@ export type Database = {
           variance_litres: number | null
           variance_reason: string | null
         }
+        SetofOptions: { from: "*"; to: "mcc_handovers"; isOneToOne: true; isSetofReturn: false }
       }
       create_mcc_handover: {
         Args: { p_trip_id: string }
@@ -1991,12 +1594,10 @@ export type Database = {
           variance_litres: number | null
           variance_reason: string | null
         }
+        SetofOptions: { from: "*"; to: "mcc_handovers"; isOneToOne: true; isSetofReturn: false }
       }
       has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
+        Args: { _role: Database["public"]["Enums"]["app_role"]; _user_id: string }
         Returns: boolean
       }
       haversine_meters: {
@@ -2005,11 +1606,7 @@ export type Database = {
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       record_mcc_handover_receipt: {
-        Args: {
-          p_handover_id: string
-          p_notes?: string
-          p_received_quantity_litres: number
-        }
+        Args: { p_handover_id: string; p_notes?: string; p_received_quantity_litres: number }
         Returns: {
           agent_id: string
           created_at: string
@@ -2032,6 +1629,7 @@ export type Database = {
           variance_litres: number | null
           variance_reason: string | null
         }
+        SetofOptions: { from: "*"; to: "mcc_handovers"; isOneToOne: true; isSetofReturn: false }
       }
       record_milk_collection: {
         Args: {
@@ -2102,6 +1700,7 @@ export type Database = {
           water_adulteration_flag: boolean
           water_adulteration_pct: number | null
         }
+        SetofOptions: { from: "*"; to: "milk_collections"; isOneToOne: true; isSetofReturn: false }
       }
       save_marked_route: {
         Args: {
@@ -2117,13 +1716,7 @@ export type Database = {
       user_mcc_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
-      app_role:
-        | "owner"
-        | "manager"
-        | "agent"
-        | "buyer"
-        | "farmer"
-        | "accountant"
+      app_role: "owner" | "manager" | "agent" | "buyer" | "farmer" | "accountant"
     }
     CompositeTypes: {
       [_ in never]: never
