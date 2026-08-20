@@ -97,6 +97,102 @@ export type Database = {
           { foreignKeyName: "attendance_route_id_fkey"; columns: ["route_id"]; isOneToOne: false; referencedRelation: "routes"; referencedColumns: ["id"] },
         ]
       }
+tracking_sessions: {
+        Row: {
+          agent_id: string
+          attendance_id: string
+          created_at: string
+          end_at: string | null
+          end_lat: number | null
+          end_lng: number | null
+          failure_reason: string | null
+          id: string
+          last_location_at: string | null
+          last_location_lat: number | null
+          last_location_lng: number | null
+          mcc_id: string
+          route_id: string | null
+          shift: string | null
+          start_at: string | null
+          start_lat: number | null
+          start_lng: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          attendance_id: string
+          created_at?: string
+          end_at?: string | null
+          end_lat?: number | null
+          end_lng?: number | null
+          failure_reason?: string | null
+          id?: string
+          last_location_at?: string | null
+          last_location_lat?: number | null
+          last_location_lng?: number | null
+          mcc_id: string
+          route_id?: string | null
+          shift?: string | null
+          start_at?: string | null
+          start_lat?: number | null
+          start_lng?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          attendance_id?: string
+          created_at?: string
+          end_at?: string | null
+          end_lat?: number | null
+          end_lng?: number | null
+          failure_reason?: string | null
+          id?: string
+          last_location_at?: string | null
+          last_location_lat?: number | null
+          last_location_lng?: number | null
+          mcc_id?: string
+          route_id?: string | null
+          shift?: string | null
+          start_at?: string | null
+          start_lat?: number | null
+          start_lng?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracking_sessions_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_sessions_attendance_id_fkey"
+            columns: ["attendance_id"]
+            isOneToOne: true
+            referencedRelation: "attendance"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_sessions_mcc_id_fkey"
+            columns: ["mcc_id"]
+            isOneToOne: false
+            referencedRelation: "mcc_centres"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracking_sessions_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      
       buyers: {
         Row: {
           active: boolean
