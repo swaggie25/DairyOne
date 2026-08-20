@@ -1,25 +1,17 @@
--- PHASE 3 — MCC handover RPCs
+-- PHASE 3 — MCC Handover RPCs
 --
--- create_mcc_handover: called once a trip is completed. Idempotent — if a
--- handover already exists for the trip it's returned as-is, so a retried
--- "Proceed to MCC" tap can never create a duplicate. Declared quantity and
--- count are computed from milk_collections (the same source of truth as
--- every other total in the app), not re-entered by the Agent.
---
--- record_mcc_handover_receipt: manager/owner at the receiving centre only.
--- Flags variance_flagged automatically when the |declared - received| gap
--- exceeds the centre's configured tolerance, and opens a structured
--- quantity_mismatch trip_exception so it can't sit hidden in a note.
---
--- acknowledge_handover_variance: requires a reason, records who
--- acknowledged it and when, and resolves the linked exception.
+-- NOTE: reconstructed from the live schema on 2026-08-19 (see sibling
+-- migration file for context). All three functions are SECURITY DEFINER so
+-- quantities, authorization, and the variance-tolerance comparison happen
+-- on the server — a client can never fabricate a "received" quantity or
+-- silently skip the variance flag.
 
 create or replace function public.create_mcc_handover(p_trip_id uuid)
 returns public.mcc_handovers
 language plpgsql
 security definer
-set search_path = public
-as $$
+set search_path to 'public'
+as $function$
 declare
   v_uid uuid := auth.uid();
   v_trip record;
@@ -29,6 +21,8 @@ declare
   v_qty numeric;
   v_count integer;
 begin
+  -- Idempotent: a retry (flaky network after the first success) returns the
+  -- existing row instead of raising or creating a duplicate handover.
   select * into v_existing from public.mcc_handovers where trip_id = p_trip_id;
   if found then
     return v_existing;
@@ -69,7 +63,7 @@ begin
 
   return v_row;
 end;
-$$;
+$function$;
 
 create or replace function public.record_mcc_handover_receipt(
   p_handover_id uuid,
@@ -79,8 +73,8 @@ create or replace function public.record_mcc_handover_receipt(
 returns public.mcc_handovers
 language plpgsql
 security definer
-set search_path = public
-as $$
+set search_path to 'public'
+as $function$
 declare
   v_uid uuid := auth.uid();
   v_row public.mcc_handovers;
@@ -135,14 +129,14 @@ begin
 
   return v_row;
 end;
-$$;
+$function$;
 
 create or replace function public.acknowledge_handover_variance(p_handover_id uuid, p_reason text)
 returns public.mcc_handovers
 language plpgsql
 security definer
-set search_path = public
-as $$
+set search_path to 'public'
+as $function$
 declare
   v_uid uuid := auth.uid();
   v_row public.mcc_handovers;
@@ -183,4 +177,8 @@ begin
 
   return v_row;
 end;
-$$;
+$function$;
+
+grant execute on function public.create_mcc_handover(uuid) to authenticated;
+grant execute on function public.record_mcc_handover_receipt(uuid, numeric, text) to authenticated;
+grant execute on function public.acknowledge_handover_variance(uuid, text) to authenticated;
