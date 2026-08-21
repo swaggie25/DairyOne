@@ -23,6 +23,9 @@ export type LivePing = {
   lat: number | null;
   lng: number | null;
   recorded_at: string;
+  speed_kmh: number | null;
+  accuracy: number | null;
+  quality: string | null;
 };
 
 export type LiveCollection = {
@@ -46,6 +49,54 @@ export type LiveRoutePoint = {
   lat: number | null;
   lng: number | null;
 };
+
+export type LiveRoutePointFarmer = {
+  route_point_id: string;
+  farmer_id: string;
+  sequence: number;
+  full_name: string;
+};
+
+/** Farmers assigned to each stop, for the routes belonging to this centre — used by the Agent Detail panel's Current/Next farmer fields. */
+export function useRoutePointFarmers(mccId: string | undefined) {
+  return useQuery<LiveRoutePointFarmer[]>({
+    queryKey: ["live-route-point-farmers", mccId],
+    enabled: Boolean(mccId),
+    staleTime: 300_000,
+    queryFn: async () => {
+      const { data: routes } = await supabase
+        .from("routes")
+        .select("id")
+        .eq("mcc_id", mccId!)
+        .eq("active", true);
+      const routeIds = (routes ?? []).map((r) => r.id);
+      if (routeIds.length === 0) return [];
+      const { data: pointRows } = await supabase
+        .from("route_points")
+        .select("id, route_id")
+        .in("route_id", routeIds);
+      const pointIds = (pointRows ?? []).map((p) => p.id);
+      if (pointIds.length === 0) return [];
+      const { data } = await supabase
+        .from("route_point_farmers")
+        .select("route_point_id, farmer_id, sequence, farmers(full_name)")
+        .in("route_point_id", pointIds);
+      return (
+        (data ?? []) as unknown as Array<{
+          route_point_id: string;
+          farmer_id: string;
+          sequence: number;
+          farmers: { full_name: string } | null;
+        }>
+      ).map((r) => ({
+        route_point_id: r.route_point_id,
+        farmer_id: r.farmer_id,
+        sequence: r.sequence,
+        full_name: r.farmers?.full_name ?? "Farmer",
+      }));
+    },
+  });
+}
 
 function startOfToday() {
   const d = new Date();
@@ -82,7 +133,9 @@ export function useLivePings(mccId: string | undefined) {
     queryFn: async () => {
       const { data } = await supabase
         .from("gps_pings")
-        .select("id, agent_id, trip_id, event_type, lat, lng, recorded_at")
+        .select(
+          "id, agent_id, trip_id, event_type, lat, lng, recorded_at, speed_kmh, accuracy, quality",
+        )
         .eq("mcc_id", mccId!)
         .gte("recorded_at", startOfToday())
         .order("recorded_at", { ascending: true })
@@ -152,7 +205,19 @@ export function useCentreLocation(mccId: string | undefined) {
   });
 }
 
-/** Refreshes live queries the moment a ping, trip change or collection lands. */
+/**
+ * LIVE TRACKING PLAN — PHASE 4
+ *
+ * Refreshes live queries as data changes. GPS pings are by far the highest-
+ * frequency event here (one every ~10-45s per active agent, per Phase 3's
+ * adaptive sampling) — invalidating the whole `live-pings` query on every
+ * single insert would refetch up to 1000 rows and force the map to rebuild
+ * every marker/trail/bounds on every tick ("Do not cause the entire map to
+ * reload on every GPS update"). Instead, splice just the new row into the
+ * existing cached array. Trips and collections are much lower-frequency
+ * (a handful of events/day, not one every few seconds), so a plain
+ * invalidate for those is cheap enough and keeps that code simple.
+ */
 export function useLiveOpsRealtime(mccId: string | undefined) {
   const queryClient = useQueryClient();
   useEffect(() => {
@@ -162,8 +227,15 @@ export function useLiveOpsRealtime(mccId: string | undefined) {
       .channel(`live-ops-${mccId}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "gps_pings", filter: `mcc_id=eq.${mccId}` },
-        () => invalidate("live-pings"),
+        { event: "INSERT", schema: "public", table: "gps_pings", filter: `mcc_id=eq.${mccId}` },
+        (payload) => {
+          const row = payload.new as LivePing;
+          queryClient.setQueryData<LivePing[]>(["live-pings", mccId], (prev) => {
+            if (!prev) return prev;
+            if (prev.some((p) => p.id === row.id)) return prev; // already have it (e.g. own optimistic insert)
+            return [...prev, row];
+          });
+        },
       )
       .on(
         "postgres_changes",
