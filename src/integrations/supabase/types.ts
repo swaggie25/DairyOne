@@ -406,43 +406,64 @@ export type Database = {
         Row: {
           accuracy: number | null
           agent_id: string
+          altitude: number | null
+          client_id: string | null
           event_type: string
           halt_seconds: number | null
+          heading: number | null
           id: string
           lat: number | null
           lng: number | null
           mcc_id: string
+          quality: string | null
           recorded_at: string
           route_point_id: string | null
           speed_kmh: number | null
+          sync_state: string
+          synced_at: string
+          tracking_session_id: string | null
           trip_id: string | null
         }
         Insert: {
           accuracy?: number | null
           agent_id: string
+          altitude?: number | null
+          client_id?: string | null
           event_type?: string
           halt_seconds?: number | null
+          heading?: number | null
           id?: string
           lat?: number | null
           lng?: number | null
           mcc_id: string
+          quality?: string | null
           recorded_at?: string
           route_point_id?: string | null
           speed_kmh?: number | null
+          sync_state?: string
+          synced_at?: string
+          tracking_session_id?: string | null
           trip_id?: string | null
         }
         Update: {
           accuracy?: number | null
           agent_id?: string
+          altitude?: number | null
+          client_id?: string | null
           event_type?: string
           halt_seconds?: number | null
+          heading?: number | null
           id?: string
           lat?: number | null
           lng?: number | null
           mcc_id?: string
+          quality?: string | null
           recorded_at?: string
           route_point_id?: string | null
           speed_kmh?: number | null
+          sync_state?: string
+          synced_at?: string
+          tracking_session_id?: string | null
           trip_id?: string | null
         }
         Relationships: [
@@ -450,6 +471,7 @@ export type Database = {
           { foreignKeyName: "gps_pings_mcc_id_fkey"; columns: ["mcc_id"]; isOneToOne: false; referencedRelation: "mcc_centres"; referencedColumns: ["id"] },
           { foreignKeyName: "gps_pings_route_point_id_fkey"; columns: ["route_point_id"]; isOneToOne: false; referencedRelation: "route_points"; referencedColumns: ["id"] },
           { foreignKeyName: "gps_pings_trip_id_fkey"; columns: ["trip_id"]; isOneToOne: false; referencedRelation: "route_trips"; referencedColumns: ["id"] },
+          { foreignKeyName: "gps_pings_tracking_session_id_fkey"; columns: ["tracking_session_id"]; isOneToOne: false; referencedRelation: "tracking_sessions"; referencedColumns: ["id"] },
         ]
       }
       ledger_entries: {
