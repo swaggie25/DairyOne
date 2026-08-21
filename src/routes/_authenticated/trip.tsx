@@ -37,6 +37,7 @@ import type { TripStop } from "@/components/agent-trip-map";
 import { useAgentContext } from "@/hooks/useAgentContext";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { useLiveLocation } from "@/hooks/useLiveLocation";
+import { useActiveTrackingSession } from "@/hooks/useActiveTrackingSession";
 import { getCoords } from "@/lib/geo";
 import { computeRoute } from "@/lib/maps.functions";
 import { QrScanner } from "@/components/qr-scanner";
@@ -423,9 +424,12 @@ function TripScreen() {
    * in-app distance/ETA and the mini route map below.
    */
 
+  const { data: activeSession } = useActiveTrackingSession(agent?.agentId ?? null);
+
   const { coords: livePos } = useLiveLocation({
     enabled: Boolean(trip?.id && agent),
     tripId: trip?.id ?? null,
+    trackingSessionId: activeSession?.id ?? null,
     agentId: agent?.agentId ?? null,
     mccId: agent?.mccId ?? null,
     routePointId: trip?.current_route_point_id ?? null,

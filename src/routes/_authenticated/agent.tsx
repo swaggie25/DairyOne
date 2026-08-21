@@ -19,6 +19,8 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgentContext } from "@/hooks/useAgentContext";
 import { useOfflineQueue } from "@/hooks/useOfflineQueue";
 import { useTrackingSession, TRACKING_FAILURE_MESSAGES } from "@/hooks/useTrackingSession";
+import { useActiveTrackingSession } from "@/hooks/useActiveTrackingSession";
+import { useLiveLocation } from "@/hooks/useLiveLocation";
 import { getCoords } from "@/lib/geo";
 import { formatCurrency } from "@/lib/pricing";
 
@@ -54,6 +56,14 @@ function AgentHome() {
   const navigate = useNavigate();
   const { pending, online, flush } = useOfflineQueue();
   const trackingSession = useTrackingSession();
+  // trackingSession.sessionId only exists in memory for the Punch In that
+  // just happened on this page load; useActiveTrackingSession re-resolves
+  // it from the DB so a reload mid-shift still finds the live session.
+  const { data: resumedSession } = useActiveTrackingSession(agent?.agentId ?? null);
+  const activeSessionId = trackingSession.sessionId ?? resumedSession?.id ?? null;
+  const activeSessionStatus = trackingSession.sessionId
+    ? trackingSession.status
+    : (resumedSession?.status ?? null);
 
   const { data: attendance } = useQuery({
     queryKey: ["attendance-today", agent?.agentId],
@@ -89,6 +99,28 @@ function AgentHome() {
         .maybeSingle();
       return data;
     },
+  });
+
+  /*
+   * LIVE TRACKING PLAN — PHASE 3
+   *
+   * GPS collection begins the moment the tracking session goes ACTIVE
+   * (i.e. right after Punch In succeeds and a GPS fix is acquired) rather
+   * than waiting for "Start trip" — this closes the Phase 2→3 gap: Phase 2
+   * already models tracking as starting at Punch In, but nothing was
+   * writing gps_pings until a trip existed. trip.tsx/route-marking.tsx keep
+   * their own useLiveLocation calls running too (each supplies its own
+   * trip_id/route_point_id context); duplicate writes across mounted pages
+   * aren't a concern in practice since only one of these routes is ever
+   * mounted at a time.
+   */
+  useLiveLocation({
+    enabled: activeSessionStatus === "ACTIVE",
+    tripId: trip?.id ?? null,
+    trackingSessionId: activeSessionId,
+    agentId: agent?.agentId ?? null,
+    mccId: agent?.mccId ?? null,
+    routePointId: null,
   });
 
   const { data: totals } = useQuery({

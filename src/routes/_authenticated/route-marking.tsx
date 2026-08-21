@@ -1,17 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation } from "@tanstack/react-query";
-import {
-  MapPin,
-  Play,
-  Square,
-  Plus,
-  Trash2,
-  Save,
-  Navigation2,
-  Clock,
-  Ruler,
-} from "lucide-react";
+import { MapPin, Play, Square, Plus, Trash2, Save, Navigation2, Clock, Ruler } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell, PageHeading } from "@/components/app-shell";
@@ -21,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAgentContext } from "@/hooks/useAgentContext";
 import { useLiveLocation } from "@/hooks/useLiveLocation";
+import { useActiveTrackingSession } from "@/hooks/useActiveTrackingSession";
 import { getCoords, haversineMeters } from "@/lib/geo";
 
 export const Route = createFileRoute("/_authenticated/route-marking")({
@@ -29,7 +20,8 @@ export const Route = createFileRoute("/_authenticated/route-marking")({
       { title: "Mark a route — DairyOne" },
       {
         name: "description",
-        content: "Walk or drive a new collection route with live GPS tracking and save it for reuse.",
+        content:
+          "Walk or drive a new collection route with live GPS tracking and save it for reuse.",
       },
     ],
   }),
@@ -95,9 +87,12 @@ function RouteMarkingScreen() {
     };
   }, [agent, tripId]);
 
+  const { data: activeSession } = useActiveTrackingSession(agent?.agentId ?? null);
+
   const { coords: livePos } = useLiveLocation({
     enabled: Boolean(tripId && agent),
     tripId,
+    trackingSessionId: activeSession?.id ?? null,
     agentId: agent?.agentId ?? null,
     mccId: agent?.mccId ?? null,
     routePointId: null,
@@ -285,8 +280,8 @@ function RouteMarkingScreen() {
         <>
           {resumed && (
             <div className="surface-card mb-4 border-amber-500/40 bg-amber-500/5 p-4 text-sm">
-              Resumed an unfinished marking trip. Stops added before you left couldn't be recovered —
-              re-add any you need, or discard and start fresh.
+              Resumed an unfinished marking trip. Stops added before you left couldn't be recovered
+              — re-add any you need, or discard and start fresh.
             </div>
           )}
           <div className="surface-card mb-4 grid grid-cols-3 gap-3 p-4 text-center">
@@ -297,7 +292,9 @@ function RouteMarkingScreen() {
             </div>
             <div>
               <Ruler className="mx-auto h-4 w-4 text-muted-foreground" />
-              <p className="mt-1 text-lg font-bold tabular-nums">{(distance / 1000).toFixed(2)} km</p>
+              <p className="mt-1 text-lg font-bold tabular-nums">
+                {(distance / 1000).toFixed(2)} km
+              </p>
               <p className="text-xs text-muted-foreground">Distance</p>
             </div>
             <div>

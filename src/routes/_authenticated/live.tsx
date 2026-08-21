@@ -1,6 +1,6 @@
 import { Suspense, lazy, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Activity, MapPinned, Milk, Navigation, Users } from "lucide-react";
+import { Activity, Gauge, MapPinned, Milk, Navigation, Radio, Users } from "lucide-react";
 import { ClientOnly } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -14,11 +14,14 @@ import {
   useLiveOpsRealtime,
   useLivePings,
   useLiveTrips,
+  useRoutePointFarmers,
   useRoutePoints,
 } from "@/hooks/useLiveOps";
 import { computeRoute } from "@/lib/maps.functions";
 import { formatCurrency } from "@/lib/pricing";
 import { MANAGER_NAV } from "@/lib/nav";
+import { haversineMeters } from "@/lib/geo";
+import { classifyLiveStatus } from "@/lib/tracking-quality";
 
 const LiveMap = lazy(() => import("@/components/google-live-map"));
 
@@ -60,18 +63,93 @@ function LiveOpsScreen() {
   const { data: trips } = useLiveTrips(mccId);
   const { data: pings } = useLivePings(mccId);
   const { data: points } = useRoutePoints(mccId);
+  const { data: pointFarmers } = useRoutePointFarmers(mccId);
   const { data: collections } = useLiveCollections(mccId);
   const { data: centre } = useCentreLocation(mccId);
 
   const tripList = trips ?? [];
   const pingList = pings ?? [];
-  const collectionList = collections ?? [];
+  const collectionList = useMemo(() => collections ?? [], [collections]);
   const active = tripList.filter((t) => t.status === "in_progress");
   const litres = collectionList.reduce((s, c) => s + Number(c.quantity_litres ?? 0), 0);
   const value = collectionList.reduce((s, c) => s + Number(c.total_amount ?? 0), 0);
 
   const lastPingFor = (agentId: string) =>
     [...pingList].reverse().find((p) => p.agent_id === agentId) ?? null;
+
+  /*
+   * LIVE TRACKING PLAN — PHASE 4: Agent detail
+   *
+   * Everything here is derived from data already on this page (pings,
+   * points, point-farmers, collections) — no new per-click query. ETA,
+   * scheduled time, delay and MCC ETA are deliberately NOT computed here:
+   * those need real road routing and centre-configured timing rules,
+   * which is Phase 5 scope. Showing a straight-line/fixed-speed guess for
+   * them now would be exactly the "fake ETA" the plan says never to ship.
+   */
+  const focusedTrip = focusAgentId
+    ? (tripList.find((t) => t.agent_id === focusAgentId) ?? null)
+    : null;
+  const focusedPing = focusAgentId ? lastPingFor(focusAgentId) : null;
+  const focusedLive = classifyLiveStatus(focusedPing?.recorded_at ?? null);
+
+  const routePointsForFocusedRoute = useMemo(() => {
+    if (!focusedTrip) return [];
+    return (points ?? [])
+      .filter((p) => p.route_id === focusedTrip.route_id)
+      .sort((a, b) => a.sequence - b.sequence);
+  }, [points, focusedTrip]);
+
+  const farmersForFocusedRoute = useMemo(() => {
+    const pointIds = new Set(routePointsForFocusedRoute.map((p) => p.id));
+    return (pointFarmers ?? [])
+      .filter((f) => pointIds.has(f.route_point_id))
+      .sort((a, b) => a.sequence - b.sequence);
+  }, [pointFarmers, routePointsForFocusedRoute]);
+
+  const tripCollections = useMemo(
+    () =>
+      focusedTrip
+        ? collectionList.filter((c) => c.agents?.full_name === focusedTrip.agents?.full_name)
+        : [],
+    [collectionList, focusedTrip],
+  );
+  // Collections don't carry farmer_id on this feed, only farmer name — match
+  // on name (same limitation as the rest of this feed, which already keys
+  // collection→agent by name for display).
+  const collectedFarmerNames = useMemo(
+    () => new Set(tripCollections.map((c) => c.farmers?.full_name).filter(Boolean)),
+    [tripCollections],
+  );
+
+  const nextUncollectedFarmer = farmersForFocusedRoute.find(
+    (f) => !collectedFarmerNames.has(f.full_name),
+  );
+  const nextFarmerIndex = nextUncollectedFarmer
+    ? farmersForFocusedRoute.findIndex((f) => f.farmer_id === nextUncollectedFarmer.farmer_id)
+    : -1;
+  const currentFarmer = nextFarmerIndex >= 0 ? nextUncollectedFarmer : null;
+  const upcomingFarmer =
+    nextFarmerIndex >= 0 && nextFarmerIndex + 1 < farmersForFocusedRoute.length
+      ? farmersForFocusedRoute[nextFarmerIndex + 1]
+      : null;
+
+  const farmersTotal = farmersForFocusedRoute.length;
+  const farmersCompleted = farmersForFocusedRoute.filter((f) =>
+    collectedFarmerNames.has(f.full_name),
+  ).length;
+  const litresThisTrip = tripCollections.reduce((s, c) => s + Number(c.quantity_litres ?? 0), 0);
+
+  const nextFarmerPoint = upcomingFarmer
+    ? (routePointsForFocusedRoute.find((p) => p.id === upcomingFarmer.route_point_id) ?? null)
+    : null;
+  const distanceToNextM =
+    focusedPing?.lat != null &&
+    focusedPing?.lng != null &&
+    nextFarmerPoint?.lat != null &&
+    nextFarmerPoint?.lng != null
+      ? haversineMeters(focusedPing.lat, focusedPing.lng, nextFarmerPoint.lat, nextFarmerPoint.lng)
+      : null;
 
   // Stops for the directions request: focused agent's route, else every active stop.
   const focusedRouteId = focusAgentId
@@ -112,7 +190,6 @@ function LiveOpsScreen() {
   const km = directions.data ? (directions.data.distanceMeters / 1000).toFixed(1) : null;
   const mins = directions.data ? Math.round(directions.data.durationSeconds / 60) : null;
 
-
   return (
     <AppShell nav={MANAGER_NAV}>
       <PageHeading
@@ -125,9 +202,21 @@ function LiveOpsScreen() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Agents on route" value={active.length} icon={<Users className="h-4 w-4" />} />
-        <StatCard label="GPS pings today" value={pingList.length} icon={<Activity className="h-4 w-4" />} />
-        <StatCard label="Litres collected" value={litres.toFixed(1)} icon={<Milk className="h-4 w-4" />} />
+        <StatCard
+          label="Agents on route"
+          value={active.length}
+          icon={<Users className="h-4 w-4" />}
+        />
+        <StatCard
+          label="GPS pings today"
+          value={pingList.length}
+          icon={<Activity className="h-4 w-4" />}
+        />
+        <StatCard
+          label="Litres collected"
+          value={litres.toFixed(1)}
+          icon={<Milk className="h-4 w-4" />}
+        />
         <StatCard label="Value today" value={formatCurrency(value)} />
       </div>
 
@@ -201,6 +290,7 @@ function LiveOpsScreen() {
               {tripList.map((trip) => {
                 const ping = lastPingFor(trip.agent_id);
                 const stop = (points ?? []).find((p) => p.id === trip.current_route_point_id);
+                const live = classifyLiveStatus(ping?.recorded_at ?? null);
                 return (
                   <li
                     key={trip.id}
@@ -223,8 +313,15 @@ function LiveOpsScreen() {
                     </p>
                     <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                       <MapPinned className="h-3 w-3" />
-                      {stop ? `At ${stop.name}` : "No stop marked"} · last ping{" "}
-                      {timeAgo(ping?.recorded_at ?? null)}
+                      {stop ? `At ${stop.name}` : "No stop marked"}
+                    </p>
+                    <p
+                      className={`mt-1 flex items-center gap-1 text-xs font-medium ${
+                        live.isLive ? "text-emerald-600" : "text-amber-600"
+                      }`}
+                    >
+                      <Radio className="h-3 w-3" />
+                      {live.isLive ? "LIVE" : "LOCATION STALE"} · {live.label}
                     </p>
                   </li>
                 );
@@ -236,6 +333,67 @@ function LiveOpsScreen() {
               )}
             </ul>
           </div>
+
+          {focusedTrip && (
+            <div className="surface-card p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-semibold">{focusedTrip.agents?.full_name ?? "Agent"}</h2>
+                <span
+                  className={`flex items-center gap-1 text-xs font-semibold ${
+                    focusedLive.isLive ? "text-emerald-600" : "text-amber-600"
+                  }`}
+                >
+                  <Radio className="h-3 w-3" />
+                  {focusedLive.isLive ? "LIVE" : "STALE"}
+                </span>
+              </div>
+              <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
+                <dt className="text-muted-foreground">Route</dt>
+                <dd className="text-right font-medium">{focusedTrip.routes?.name ?? "—"}</dd>
+
+                <dt className="text-muted-foreground">Current location</dt>
+                <dd className="text-right font-medium">
+                  {focusedPing?.lat != null && focusedPing?.lng != null
+                    ? `${focusedPing.lat.toFixed(4)}, ${focusedPing.lng.toFixed(4)}`
+                    : "—"}
+                </dd>
+
+                <dt className="text-muted-foreground">Current farmer</dt>
+                <dd className="text-right font-medium">{currentFarmer?.full_name ?? "—"}</dd>
+
+                <dt className="text-muted-foreground">Next farmer</dt>
+                <dd className="text-right font-medium">{upcomingFarmer?.full_name ?? "—"}</dd>
+
+                <dt className="flex items-center gap-1 text-muted-foreground">
+                  <Gauge className="h-3 w-3" /> Speed
+                </dt>
+                <dd className="text-right font-medium">
+                  {focusedPing?.speed_kmh != null
+                    ? `${focusedPing.speed_kmh.toFixed(0)} km/h`
+                    : "—"}
+                </dd>
+
+                <dt className="text-muted-foreground">Distance to next</dt>
+                <dd className="text-right font-medium">
+                  {distanceToNextM != null ? `${(distanceToNextM / 1000).toFixed(2)} km` : "—"}
+                </dd>
+
+                <dt className="text-muted-foreground">Farmers</dt>
+                <dd className="text-right font-medium">
+                  {farmersCompleted} / {farmersTotal} done
+                </dd>
+
+                <dt className="text-muted-foreground">Milk collected</dt>
+                <dd className="text-right font-medium">{litresThisTrip.toFixed(1)} L</dd>
+
+                <dt className="text-muted-foreground">Last update</dt>
+                <dd className="text-right font-medium">{focusedLive.label}</dd>
+
+                <dt className="text-muted-foreground">ETA · Delay · MCC ETA</dt>
+                <dd className="text-right text-xs text-muted-foreground">Coming in Phase 5</dd>
+              </dl>
+            </div>
+          )}
 
           <div className="surface-card p-4">
             <h2 className="mb-3 font-semibold">Live collection feed</h2>
